@@ -12,11 +12,8 @@ void test_scalar(float Buf) {
   // SPIRV:      define spir_func void @{{.*}}test_scalar{{.*}}(float {{.*}} [[VALP:%.*]])
   // SPIRV:      [[LOAD:%.*]] = load float, ptr [[VALP]].addr, align 4
   // SPIRV-NEXT: [[FCMP:%.*]] = fcmp olt float [[LOAD]], 0.000000e+00
-  // SPIRV-NO:   call i1 @llvm.dx.any
-  // SPIRV-NEXT: br i1 [[FCMP]], label %[[LTL:.*]], label %[[ENDL:.*]]
-  // SPIRV:      [[LTL]]: ; preds = %entry
-  // SPIRV-NEXT: call void @llvm.spv.clip()
-  // SPIRV:      br label %[[ENDL]]
+  // SPIRV-NO:   call i1 @llvm.spv.any
+  // SPIRV-NEXT: call void @llvm.spv.clip(i1 [[FCMP]])
   clip(Buf);
 }
 
@@ -30,10 +27,7 @@ void test_vector4(float4 Buf) {
   // SPIRV:      define spir_func void @{{.*}}test_vector{{.*}}(<4 x float> {{.*}} [[VALP:%.*]])
   // SPIRV:      [[LOAD:%.*]] = load <4 x float>, ptr [[VALP]].addr, align 16
   // SPIRV-NEXT: [[FCMP:%.*]] = fcmp olt <4 x float> [[LOAD]], zeroinitializer
-  // SPIRV-NEXT: [[ANYC:%.*]] = call i1 @llvm.spv.any.v4i1(<4 x i1> [[FCMP]]) 
-  // SPIRV-NEXT: br i1 [[ANYC]], label %[[LTL:.*]], label %[[ENDL:.*]]
-  // SPIRV:      [[LTL]]: ; preds = %entry
-  // SPIRV-NEXT: call void @llvm.spv.clip()
-  // SPIRV-NEXT: br label %[[ENDL]]
+  // SPIRV-NEXT: [[ANYC:%.*]] = call i1 @llvm.spv.any.v4i1(<4 x i1> [[FCMP]])
+  // SPIRV-NEXT: call void @llvm.spv.clip(i1 [[ANYC]])
   clip(Buf);
 }

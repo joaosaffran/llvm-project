@@ -15,7 +15,7 @@
 ; SPIRV16-DAG: %[[#vecfuncopptr:]] = OpTypePointer Function %[[#v4float]]
 ; SPIRV16-DAG: %[[#funcopptr:]] = OpTypePointer Function %[[#float]]
 
-define void @test_scalar(float noundef %Buf) {
+define spir_func void @test_scalar(float noundef %Buf) {
 entry:
 ; CHECK-LABEL: ; -- Begin function test_scalar
 ; SPIRV16:     %[[#param:]] = OpVariable %[[#funcopptr]] Function
@@ -30,22 +30,12 @@ entry:
 ; SPIRV16:     OpDemoteToHelperInvocation
 ; SPIRV16:     OpBranch %[[#endl]]
 ; CHECK:       %[[#endl]] = OpLabel
-  %Buf.addr = alloca float, align 4
-  store float %Buf, ptr %Buf.addr, align 4
-  %1 = load float, ptr %Buf.addr, align 4
-  %2 = fcmp olt float %1, 0.000000e+00
-  br i1 %2, label %lt0, label %end
-
-lt0:                                              ; preds = %entry
-  call void @llvm.spv.clip()
-  br label %end
-
-end:                                              ; preds = %lt0, %entry
+  %2 = fcmp olt float %Buf, 0.000000e+00
+  call void @llvm.spv.clip(i1 %2)
   ret void
 }
-declare void @llvm.spv.clip()
 
-define void @test_vector(<4 x float> noundef %Buf) {
+define spir_func void @test_vector(<4 x float> noundef %Buf) {
 entry:
 ; CHECK-LABEL: ; -- Begin function test_vector
 ; SPIRV16:     %[[#param:]] = OpVariable %[[#vecfuncopptr]] Function
@@ -61,17 +51,11 @@ entry:
 ; SPIRV16:     OpDemoteToHelperInvocation
 ; SPIRV16:     OpBranch %[[#endl]]
 ; CHECK:       %[[#endl]] = OpLabel
-  %Buf.addr = alloca <4 x float>, align 16
-  store <4 x float> %Buf, ptr %Buf.addr, align 16
-  %1 = load <4 x float>, ptr %Buf.addr, align 16
-  %2 = fcmp olt <4 x float> %1, zeroinitializer
-  %3 = call i1 @llvm.spv.any.v4i1(<4 x i1> %2)
-  br i1 %3, label %lt0, label %end
-
-lt0:                                              ; preds = %entry
-  call void @llvm.spv.clip()
-  br label %end
-
-end:                                              ; preds = %lt0, %entry
+  %2 = fcmp olt <4 x float> %Buf, zeroinitializer
+  %3 = call i1 @llvm.spv.any.v4i1(<4 x i1> %2)                                           
+  call void @llvm.spv.clip(i1 %3)
   ret void
 }
+
+declare void @llvm.spv.clip(i1)
+declare i1 @llvm.spv.any.v4i1(<4 x i1>)

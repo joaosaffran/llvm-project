@@ -25,11 +25,14 @@
 #include "llvm/CodeGen/GlobalISel/GIMatchTableExecutorImpl.h"
 #include "llvm/CodeGen/GlobalISel/GenericMachineInstrs.h"
 #include "llvm/CodeGen/GlobalISel/InstructionSelector.h"
+#include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/MachineInstrBuilder.h"
 #include "llvm/CodeGen/MachineModuleInfoImpls.h"
 #include "llvm/CodeGen/MachineRegisterInfo.h"
+#include "llvm/CodeGen/Passes.h"
 #include "llvm/CodeGen/Register.h"
 #include "llvm/CodeGen/TargetOpcodes.h"
+#include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/IntrinsicsSPIRV.h"
 #include "llvm/Support/Debug.h"
 
@@ -1972,7 +1975,7 @@ bool SPIRVInstructionSelector::selectSplatVector(Register ResVReg,
 bool SPIRVInstructionSelector::selectClip(Register ResVReg,
                                           const SPIRVType *ResType,
                                           MachineInstr &I) const {
-
+  bool Response = true;                                            
   unsigned Opcode;
 
   if (STI.isAtLeastSPIRVVer(VersionTuple(1, 6))) {
@@ -1985,14 +1988,38 @@ bool SPIRVInstructionSelector::selectClip(Register ResVReg,
     Opcode = SPIRV::OpDemoteToHelperInvocation;
   } else {
     Opcode = SPIRV::OpKill;
-    // OpKill must be the last operation of any basic block.
-    MachineInstr *NextI = I.getNextNode();
-    NextI->removeFromParent();
   }
 
-  MachineBasicBlock &BB = *I.getParent();
-  return BuildMI(BB, I, I.getDebugLoc(), TII.get(Opcode))
-      .constrainAllUses(TII, TRI, RBI);
+  MachineBasicBlock *MBB = I.getParent();
+  MachineFunction *MF = MBB->getParent();
+  DebugLoc DL = I.getDebugLoc();
+
+  MachineBasicBlock *TrueBB = MF->CreateMachineBasicBlock();
+  MachineBasicBlock *FalseBB = MF->CreateMachineBasicBlock();
+  MF->insert(++MBB->getIterator(), TrueBB);
+  MF->insert(++MBB->getIterator(), FalseBB);
+
+
+  Response &= BuildMI(*MBB, I, DL, TII.get(SPIRV::OpBranchConditional))
+    .addReg(I.getOperand(1).getReg())
+    .addMBB(TrueBB)
+    .addMBB(FalseBB)
+    .constrainAllUses(TII, TRI, RBI);  
+
+  MBB->splice(FalseBB->end(), MBB, I, MBB->end());
+
+  Response &= BuildMI(*TrueBB, TrueBB->end(), DL, TII.get(SPIRV::OpLabel))
+          .addMBB(TrueBB)
+          .constrainAllUses(TII, TRI, RBI);
+
+  Response &= BuildMI(*TrueBB, TrueBB->end(), DL, TII.get(Opcode))
+    .constrainAllUses(TII, TRI, RBI);
+
+  Response &= BuildMI(*MBB, I, DL, TII.get(SPIRV::OpLabel))
+          .addMBB(FalseBB)
+          .constrainAllUses(TII, TRI, RBI);
+
+  return Response;
 }
 
 bool SPIRVInstructionSelector::selectCmp(Register ResVReg,

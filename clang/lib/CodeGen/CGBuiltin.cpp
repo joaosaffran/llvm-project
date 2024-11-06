@@ -115,24 +115,8 @@ static Value *handleHlslClip(const CallExpr *E, CodeGenFunction *CGF) {
   } else
     CMP = CGF->Builder.CreateFCmpOLT(Op0, FZeroConst);
 
-  if (CGF->CGM.getTarget().getTriple().isDXIL())
-    return CGF->Builder.CreateIntrinsic(CGF->VoidTy, llvm::Intrinsic::dx_clip,
+  return CGF->Builder.CreateIntrinsic(CGF->VoidTy, CGF->CGM.getHLSLRuntime().getClipIntrinsic(),
                                         {CMP}, nullptr);
-
-  BasicBlock *LT0 = CGF->createBasicBlock("lt0", CGF->CurFn);
-  BasicBlock *End = CGF->createBasicBlock("end", CGF->CurFn);
-
-  CGF->Builder.CreateCondBr(CMP, LT0, End);
-
-  CGF->Builder.SetInsertPoint(LT0);
-
-  CGF->Builder.CreateIntrinsic(CGF->VoidTy, llvm::Intrinsic::spv_clip, {},
-                               nullptr);
-
-  auto *BrCall = CGF->Builder.CreateBr(End);
-
-  CGF->Builder.SetInsertPoint(End);
-  return BrCall;
 }
 
 static Value *handleHlslSplitdouble(const CallExpr *E, CodeGenFunction *CGF) {
