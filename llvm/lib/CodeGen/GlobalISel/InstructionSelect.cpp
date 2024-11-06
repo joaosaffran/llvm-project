@@ -20,6 +20,7 @@
 #include "llvm/CodeGen/GlobalISel/InstructionSelector.h"
 #include "llvm/CodeGen/GlobalISel/LegalizerInfo.h"
 #include "llvm/CodeGen/GlobalISel/Utils.h"
+#include "llvm/CodeGen/MachineBasicBlock.h"
 #include "llvm/CodeGen/MachineFrameInfo.h"
 #include "llvm/CodeGen/MachineOptimizationRemarkEmitter.h"
 #include "llvm/CodeGen/MachineRegisterInfo.h"
@@ -297,9 +298,10 @@ bool InstructionSelect::selectMachineFunction(MachineFunction &MF) {
   }
 
   if (MF.size() != NumBlocks) {
+    MachineBasicBlock &FirstMBB = *MF.begin();
     MachineOptimizationRemarkMissed R("gisel-select", "GISelFailure",
                                       MF.getFunction().getSubprogram(),
-                                      /*MBB=*/nullptr);
+                                      /*MBB=*/&FirstMBB);
     R << "inserting blocks is not supported yet";
     reportGISelFailure(MF, TPC, MORE, R);
     return false;
