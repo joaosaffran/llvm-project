@@ -558,6 +558,21 @@ struct ProgramSignatureElement {
 static_assert(sizeof(ProgramSignatureElement) == 32,
               "ProgramSignatureElement is misaligned");
 
+struct RootDescriptor {
+  //   shader register
+  // i32: register space
+  uint32_t ShaderRegistry = 0;
+  uint32_t ShaderSpace = 0;
+  uint32_t DescriptorFlag = 0;
+
+  RootDescriptor() = default;
+
+  void swapBytes() {
+    sys::swapByteOrder(ShaderRegistry);
+    sys::swapByteOrder(ShaderSpace);
+  }
+};
+
 struct RootConstants {
   uint32_t ShaderRegister;
   uint32_t RegisterSpace;
