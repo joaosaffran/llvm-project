@@ -172,6 +172,13 @@ enum class ShaderVisibilityFlag : uint32_t {
 
 ArrayRef<EnumEntry<ShaderVisibilityFlag>> getShaderVisibilityFlags();
 
+#define ROOT_DESCRIPTOR_FLAG(Val, Enum) Enum = Val,
+enum class RootDescriptorFlag : uint32_t {
+#include "DXContainerConstants.def"
+};
+
+ArrayRef<EnumEntry<RootDescriptorFlag>> getRootDescriptorFlags();
+
 PartType parsePartType(StringRef S);
 
 struct VertexPSVInfo {
@@ -566,7 +573,7 @@ struct RootDescriptor {
   // i32: register space
   uint32_t ShaderRegistry = 0;
   uint32_t ShaderSpace = 0;
-  uint32_t DescriptorFlag = 0;
+  dxbc::RootDescriptorFlag DescriptorFlag = dxbc::RootDescriptorFlag::None;
 
   RootDescriptor() = default;
 
@@ -599,7 +606,6 @@ struct RootParameter {
   dxbc::ShaderVisibilityFlag ShaderVisibility;
 
   RootParameter() {
-    Constants = RootConstants();
     ParameterType = dxbc::RootParameterType::Empty;
     ShaderVisibility = dxbc::ShaderVisibilityFlag::Empty;
   }
@@ -611,6 +617,11 @@ struct RootParameter {
     switch (ParameterType) {
     case RootParameterType::Constants32Bit:
       Constants.swapBytes();
+      break;
+    case RootParameterType::CBV:
+    case RootParameterType::SRV:
+    case RootParameterType::UAV:
+      Descriptor.swapBytes();
       break;
     case RootParameterType::Empty:
       llvm_unreachable("invalid value for ParameterType");
