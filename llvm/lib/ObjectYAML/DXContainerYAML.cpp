@@ -230,6 +230,13 @@ void MappingTraits<llvm::DXContainerYAML::RootConstantsYaml>::mapping(
   IO.mapRequired("ShaderRegister", C.ShaderRegister);
 }
 
+void MappingTraits<dxbc::RootDescriptor>::mapping(IO &IO,
+                                                  dxbc::RootDescriptor &D) {
+  IO.mapRequired("DescriptorFlag", D.DescriptorFlag);
+  IO.mapRequired("ShaderSpace", D.ShaderSpace);
+  IO.mapRequired("ShaderRegistry", D.ShaderRegistry);
+}
+
 void MappingTraits<llvm::DXContainerYAML::RootParameterYamlDesc>::mapping(
     IO &IO, llvm::DXContainerYAML::RootParameterYamlDesc &P) {
   IO.mapRequired("ParameterType", P.Type);
@@ -237,6 +244,11 @@ void MappingTraits<llvm::DXContainerYAML::RootParameterYamlDesc>::mapping(
   switch (P.Type) {
   case dxbc::RootParameterType::Constants32Bit:
     IO.mapRequired("Constants", P.Constants);
+    break;
+  case dxbc::RootParameterType::CBV:
+  case dxbc::RootParameterType::SRV:
+  case dxbc::RootParameterType::UAV:
+    IO.mapRequired("Descriptor", P.Descriptor);
     break;
   case dxbc::RootParameterType::Empty:
     llvm_unreachable("Invalid value for ParameterType");
@@ -355,6 +367,12 @@ void ScalarEnumerationTraits<dxbc::RootParameterType>::enumeration(
 void ScalarEnumerationTraits<dxbc::ShaderVisibility>::enumeration(
     IO &IO, dxbc::ShaderVisibility &Value) {
   for (const auto &E : dxbc::getShaderVisibility())
+    IO.enumCase(Value, E.Name.str().c_str(), E.Value);
+}
+
+void ScalarEnumerationTraits<dxbc::RootDescriptorFlag>::enumeration(
+    IO &IO, dxbc::RootDescriptorFlag &Value) {
+  for (const auto &E : dxbc::getRootDescriptorFlags())
     IO.enumCase(Value, E.Name.str().c_str(), E.Value);
 }
 
