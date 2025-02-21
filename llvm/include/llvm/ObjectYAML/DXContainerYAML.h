@@ -340,6 +340,10 @@ template <> struct MappingTraits<llvm::DXContainerYAML::RootDescriptorYaml> {
   static void mapping(IO &IO, llvm::DXContainerYAML::RootDescriptorYaml &D);
 };
 
+template <> struct MappingTraits<dxbc::RootDescriptor> {
+  static void mapping(IO &IO, dxbc::RootDescriptor &D);
+};
+
 } // namespace yaml
 
 } // namespace llvm
