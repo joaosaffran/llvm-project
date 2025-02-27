@@ -267,6 +267,10 @@ PreservedAnalyses RootSignatureAnalysisPrinter::run(Module &M,
            << " \n";
         Space--;
       } break;
+      case dxbc::RootParameterType::CBV:
+      case dxbc::RootParameterType::SRV:
+      case dxbc::RootParameterType::UAV:
+        break;
       case dxbc::RootParameterType::Empty:
         break;
       }
