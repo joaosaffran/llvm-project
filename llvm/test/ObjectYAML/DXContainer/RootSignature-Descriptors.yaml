@@ -1,0 +1,79 @@
+# RUN: yaml2obj %s | obj2yaml | FileCheck %s
+
+--- !dxcontainer
+Header:
+  Hash:            [ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 
+                     0x0, 0x0, 0x0, 0x0, 0x0, 0x0 ]
+  Version:
+    Major:           1
+    Minor:           0
+  PartCount:       1
+  PartOffsets:     [ 60 ]
+Parts:
+  - Name:            RTS0
+    Size:            152
+    RootSignature:
+      Version: 2
+      NumStaticSamplers: 0
+      StaticSamplersOffset: 64
+      Parameters:         
+      - ParameterType: Constants32Bit
+        ShaderVisibility: Hull
+        Constants:
+          Num32BitValues: 16
+          ShaderRegister: 15
+          RegisterSpace: 14
+      - ParameterType: CBV
+        ShaderVisibility: Pixel
+        Descriptor:
+          ShaderRegistry: 21
+          ShaderSpace: 22
+          DescriptorFlag: DataVolatile     
+      - ParameterType: SRV
+        ShaderVisibility: Geometry
+        Descriptor:
+          ShaderRegistry: 31
+          ShaderSpace: 32
+          DescriptorFlag: DataStaticWhileSetAtExecute  
+      - ParameterType: UAV
+        ShaderVisibility: Hull
+        Descriptor:
+          ShaderRegistry: 41
+          ShaderSpace: 42
+          DescriptorFlag: DataStatic  
+      AllowInputAssemblerInputLayout: true
+      DenyGeometryShaderRootAccess: true
+
+#CHECK: - Name:            RTS0
+#CHECK-NEXT:    Size:            152
+#CHECK-NEXT:    RootSignature:
+#CHECK-NEXT:      Version:         2
+#CHECK-NEXT:      NumStaticSamplers: 0
+#CHECK-NEXT:      StaticSamplersOffset: 0
+#CHECK-NEXT:      Parameters:
+#CHECK-NEXT:        - ParameterType:   Constants32Bit
+#CHECK-NEXT:          ShaderVisibility: Hull
+#CHECK-NEXT:          Constants:
+#CHECK-NEXT:            Num32BitValues:  16
+#CHECK-NEXT:            RegisterSpace:   14
+#CHECK-NEXT:            ShaderRegister:  15
+#CHECK-NEXT:        - ParameterType:   CBV
+#CHECK-NEXT:          ShaderVisibility: Pixel
+#CHECK-NEXT:          Descriptor:
+#CHECK-NEXT:            DescriptorFlag:  DataVolatile
+#CHECK-NEXT:            ShaderSpace:     22
+#CHECK-NEXT:            ShaderRegistry:  21
+#CHECK-NEXT:        - ParameterType:   SRV
+#CHECK-NEXT:          ShaderVisibility: Geometry
+#CHECK-NEXT:          Descriptor:
+#CHECK-NEXT:            DescriptorFlag:  DataStaticWhileSetAtExecute
+#CHECK-NEXT:            ShaderSpace:     32
+#CHECK-NEXT:            ShaderRegistry:  31
+#CHECK-NEXT:        - ParameterType:   UAV
+#CHECK-NEXT:          ShaderVisibility: Hull
+#CHECK-NEXT:          Descriptor:
+#CHECK-NEXT:            DescriptorFlag:  DataStatic
+#CHECK-NEXT:            ShaderSpace:     42
+#CHECK-NEXT:            ShaderRegistry:  41
+#CHECK-NEXT:      AllowInputAssemblerInputLayout: true
+#CHECK-NEXT:      DenyGeometryShaderRootAccess: true

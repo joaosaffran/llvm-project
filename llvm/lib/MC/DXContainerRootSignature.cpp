@@ -67,11 +67,11 @@ void RootSignatureDesc::write(raw_ostream &OS) const {
     case dxbc::RootParameterType::CBV:
     case dxbc::RootParameterType::SRV:
     case dxbc::RootParameterType::UAV: {
-      support::endian::write(OS, P.Descriptor.ShaderRegistry,
+      support::endian::write(BOS, P.Descriptor.ShaderRegistry,
                              llvm::endianness::little);
-      support::endian::write(OS, P.Descriptor.ShaderSpace,
+      support::endian::write(BOS, P.Descriptor.ShaderSpace,
                              llvm::endianness::little);
-      support::endian::write(OS, P.Descriptor.DescriptorFlag,
+      support::endian::write(BOS, P.Descriptor.DescriptorFlag,
                              llvm::endianness::little);
     } break;
     case dxbc::RootParameterType::Empty:

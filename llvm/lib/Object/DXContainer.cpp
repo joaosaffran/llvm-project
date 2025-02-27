@@ -326,6 +326,12 @@ Error DirectX::RootSignature::parse(StringRef Data) {
     case dxbc::RootParameterType::Empty:
       // unreachable  because it was validated and assigned before this point.
       llvm_unreachable("Invalid value for RootParameterType");
+    case dxbc::RootParameterType::CBV:
+    case dxbc::RootParameterType::SRV:
+    case dxbc::RootParameterType::UAV:
+      if (Error Err = readStruct(Data, Begin + Offset, NewParam.Descriptor))
+        return Err;
+      break;
     }
 
     Parameters.push_back(NewParam);

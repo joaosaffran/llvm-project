@@ -638,6 +638,9 @@ struct RootSignatureValidations {
   static bool isValidParameterType(dxbc::RootParameterType Type) {
     switch (Type) {
     case dxbc::RootParameterType::Constants32Bit:
+    case dxbc::RootParameterType::CBV:
+    case dxbc::RootParameterType::SRV:
+    case dxbc::RootParameterType::UAV:
       return true;
     default:
       return false;
