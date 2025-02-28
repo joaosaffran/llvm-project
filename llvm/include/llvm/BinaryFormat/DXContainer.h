@@ -13,7 +13,9 @@
 #ifndef LLVM_BINARYFORMAT_DXCONTAINER_H
 #define LLVM_BINARYFORMAT_DXCONTAINER_H
 
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/SwapByteOrder.h"
 #include "llvm/TargetParser/Triple.h"
 
@@ -653,6 +655,27 @@ struct RootSignatureValidations {
     default:
       return false;
     }
+  }
+
+  static bool isValidRootDescriptorFlag(uint32_t Version,
+                                        dxbc::RootDescriptorFlag Flag) {
+    assert(isValidVersion(Version));
+
+    if (Version == 1)
+      return Flag == dxbc::RootDescriptorFlag::None;
+
+    switch (Flag) {
+    case RootDescriptorFlag::DataVolatile:
+    case RootDescriptorFlag::DataStaticWhileSetAtExecute:
+    case RootDescriptorFlag::DataStatic:
+      return true;
+    default:
+      return false;
+    }
+  }
+
+  static bool isValidShaderSpace(uint32_t Space) {
+    return (Space & ~0x0FFFFFFF) == 0;
   }
 };
 

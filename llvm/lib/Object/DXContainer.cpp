@@ -331,10 +331,20 @@ Error DirectX::RootSignature::parse(StringRef Data) {
       llvm_unreachable("Invalid value for RootParameterType");
     case dxbc::RootParameterType::CBV:
     case dxbc::RootParameterType::SRV:
-    case dxbc::RootParameterType::UAV:
+    case dxbc::RootParameterType::UAV: {
       if (Error Err = readStruct(Data, Begin + Offset, NewParam.Descriptor))
         return Err;
-      break;
+      if (!dxbc::RootSignatureValidations::isValidRootDescriptorFlag(
+              Version, NewParam.Descriptor.DescriptorFlag))
+        return validationFailed(
+            "unsupported root descriptor flag value read: " +
+            llvm::Twine((uint32_t)NewParam.Descriptor.DescriptorFlag));
+      if (!dxbc::RootSignatureValidations::isValidShaderSpace(
+              NewParam.Descriptor.ShaderSpace))
+        return validationFailed(
+            "invalid shader space value read: " +
+            llvm::Twine((uint32_t)NewParam.Descriptor.ShaderSpace));
+    } break;
     }
 
     Parameters.push_back(NewParam);
