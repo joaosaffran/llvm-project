@@ -17,6 +17,7 @@
 #include "llvm/Analysis/DXILMetadataAnalysis.h"
 #include "llvm/BinaryFormat/DXContainer.h"
 #include "llvm/IR/Constants.h"
+#include "llvm/IR/Metadata.h"
 #include "llvm/InitializePasses.h"
 #include "llvm/Pass.h"
 
@@ -27,6 +28,45 @@ static bool reportError(LLVMContext *Ctx, Twine Message,
                         DiagnosticSeverity Severity = DS_Error) {
   Ctx->diagnose(DiagnosticInfoGeneric(Message, Severity));
   return true;
+}
+
+static bool parseRootDescriptor(LLVMContext *Ctx,
+                                mcdxbc::RootSignatureDesc &RSD,
+                                MDNode *RootDescNode) {
+  if (RootDescNode->getNumOperands() != 4)
+    return reportError(Ctx, "Invalid format for Root constants element");
+
+  StringRef DescType =
+      cast<llvm::MDString>(RootDescNode->getOperand(0))->getString();
+
+  dxbc::RootParameter NewParam;
+  NewParam.ParameterType = StringSwitch<dxbc::RootParameterType>(DescType)
+                               .Case("RootCBV", dxbc::RootParameterType::CBV)
+                               .Case("RootSRV", dxbc::RootParameterType::SRV)
+                               .Case("RootUAV", dxbc::RootParameterType::UAV)
+                               .Default(dxbc::RootParameterType::Empty);
+
+  auto *ShaderVisibility =
+      mdconst::extract<ConstantInt>(RootDescNode->getOperand(1));
+  NewParam.ShaderVisibility =
+      (dxbc::ShaderVisibility)ShaderVisibility->getZExtValue();
+
+  auto *ShaderRegister =
+      mdconst::extract<ConstantInt>(RootDescNode->getOperand(2));
+  NewParam.Descriptor.ShaderRegistry = ShaderRegister->getZExtValue();
+
+  auto *ShaderSpace =
+      mdconst::extract<ConstantInt>(RootDescNode->getOperand(2));
+  NewParam.Descriptor.ShaderSpace = ShaderSpace->getZExtValue();
+
+  auto *DescriptorFlag =
+      mdconst::extract<ConstantInt>(RootDescNode->getOperand(2));
+  NewParam.Descriptor.DescriptorFlag =
+      (dxbc::RootDescriptorFlag)DescriptorFlag->getZExtValue();
+
+  RSD.Parameters.push_back(NewParam);
+
+  return false;
 }
 
 static bool parseRootConstants(LLVMContext *Ctx, mcdxbc::RootSignatureDesc &RSD,
@@ -82,6 +122,9 @@ static bool parseRootSignatureElement(LLVMContext *Ctx,
       StringSwitch<RootSignatureElementKind>(ElementText->getString())
           .Case("RootFlags", RootSignatureElementKind::RootFlags)
           .Case("RootConstants", RootSignatureElementKind::RootConstants)
+          .Case("RootCBV", RootSignatureElementKind::RootDescriptor)
+          .Case("RootSRV", RootSignatureElementKind::RootDescriptor)
+          .Case("RootUAV", RootSignatureElementKind::RootDescriptor)
           .Default(RootSignatureElementKind::Error);
 
   switch (ElementKind) {
@@ -89,6 +132,10 @@ static bool parseRootSignatureElement(LLVMContext *Ctx,
     return parseRootConstants(Ctx, RSD, Element);
   case RootSignatureElementKind::RootFlags:
     return parseRootFlags(Ctx, RSD, Element);
+  case RootSignatureElementKind::RootDescriptor:
+    return parseRootDescriptor(Ctx, RSD, Element);
+
+    break;
   case RootSignatureElementKind::Error:
     return reportError(Ctx, "Invalid Root Signature Element: " +
                                 ElementText->getString());
