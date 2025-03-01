@@ -675,7 +675,7 @@ struct RootSignatureValidations {
   }
 
   static bool isValidShaderSpace(uint32_t Space) {
-    return (Space & ~0x0FFFFFFF) == 0;
+    return Space == 0 || (Space & ~0x0FFFFFFF) == 0;
   }
 };
 
