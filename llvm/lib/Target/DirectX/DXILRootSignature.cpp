@@ -17,7 +17,6 @@
 #include "llvm/Analysis/DXILMetadataAnalysis.h"
 #include "llvm/BinaryFormat/DXContainer.h"
 #include "llvm/IR/Constants.h"
-#include "llvm/IR/Metadata.h"
 #include "llvm/InitializePasses.h"
 #include "llvm/Pass.h"
 
@@ -33,8 +32,8 @@ static bool reportError(LLVMContext *Ctx, Twine Message,
 static bool parseRootDescriptor(LLVMContext *Ctx,
                                 mcdxbc::RootSignatureDesc &RSD,
                                 MDNode *RootDescNode) {
-  if (RootDescNode->getNumOperands() != 4)
-    return reportError(Ctx, "Invalid format for Root constants element");
+  if (RootDescNode->getNumOperands() != 5)
+    return reportError(Ctx, "Invalid format for Root descriptor element");
 
   StringRef DescType =
       cast<llvm::MDString>(RootDescNode->getOperand(0))->getString();
@@ -319,8 +318,19 @@ PreservedAnalyses RootSignatureAnalysisPrinter::run(Module &M,
       } break;
       case dxbc::RootParameterType::CBV:
       case dxbc::RootParameterType::SRV:
-      case dxbc::RootParameterType::UAV:
-        break;
+      case dxbc::RootParameterType::UAV: {
+        OS << indent(Space) << "- Descriptor: \n";
+        Space++;
+        OS << indent(Space) << "Type: " << (uint32_t)P.ParameterType << " \n";
+        OS << indent(Space) << "ShaderSpace: " << P.Descriptor.ShaderSpace
+           << " \n";
+        OS << indent(Space) << "ShaderRegistry: " << P.Descriptor.ShaderRegistry
+           << " \n";
+        OS << indent(Space)
+           << "DescriptorFlag: " << (uint32_t)P.Descriptor.DescriptorFlag
+           << " \n";
+        Space--;
+      } break;
       case dxbc::RootParameterType::Empty:
         break;
       }
