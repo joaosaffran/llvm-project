@@ -39,16 +39,17 @@ static bool parseRootDescriptor(LLVMContext *Ctx,
   StringRef DescType =
       cast<llvm::MDString>(RootDescNode->getOperand(0))->getString();
 
-  dxbc::RootParameter NewParam;
-  NewParam.ParameterType = StringSwitch<dxbc::RootParameterType>(DescType)
-                               .Case("RootCBV", dxbc::RootParameterType::CBV)
-                               .Case("RootSRV", dxbc::RootParameterType::SRV)
-                               .Case("RootUAV", dxbc::RootParameterType::UAV)
-                               .Default(dxbc::RootParameterType::Empty);
+  mcdxbc::RootParameter NewParam;
+  NewParam.Header.ParameterType =
+      StringSwitch<dxbc::RootParameterType>(DescType)
+          .Case("RootCBV", dxbc::RootParameterType::CBV)
+          .Case("RootSRV", dxbc::RootParameterType::SRV)
+          .Case("RootUAV", dxbc::RootParameterType::UAV)
+          .Default(dxbc::RootParameterType::Empty);
 
   auto *ShaderVisibility =
       mdconst::extract<ConstantInt>(RootDescNode->getOperand(1));
-  NewParam.ShaderVisibility =
+  NewParam.Header.ShaderVisibility =
       (dxbc::ShaderVisibility)ShaderVisibility->getZExtValue();
 
   auto *ShaderRegister =

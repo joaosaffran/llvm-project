@@ -75,6 +75,12 @@ struct RootConstantsYaml {
   uint32_t Num32BitValues;
 };
 
+struct RootDescriptorYaml {
+  uint32_t ShaderRegistry;
+  uint32_t ShaderSpace;
+  dxbc::RootDescriptorFlag DescriptorFlag;
+};
+
 struct RootParameterYamlDesc {
   dxbc::RootParameterType Type;
   dxbc::ShaderVisibility Visibility;
@@ -92,6 +98,16 @@ struct RootParameterYamlDesc {
       Constants.RegisterSpace = Parameter->Constants.RegisterSpace;
       Constants.ShaderRegister = Parameter->Constants.ShaderRegister;
     } break;
+
+    case dxbc::RootParameterType::CBV:
+    case dxbc::RootParameterType::SRV:
+    case dxbc::RootParameterType::UAV: {
+      Descriptor.DescriptorFlag = Parameter->Descriptor.DescriptorFlag;
+      Descriptor.ShaderRegistry = Parameter->Descriptor.ShaderRegistry;
+      Descriptor.ShaderSpace = Parameter->Descriptor.ShaderSpace;
+
+    } break;
+
     case dxbc::RootParameterType::Empty:
       llvm_unreachable("Invalid Root Parameter Type. It should be verified "
                        "before reaching here.");
@@ -100,6 +116,7 @@ struct RootParameterYamlDesc {
   }
   union {
     RootConstantsYaml Constants;
+    RootDescriptorYaml Descriptor;
   };
 };
 
@@ -305,8 +322,8 @@ template <> struct MappingTraits<llvm::DXContainerYAML::RootConstantsYaml> {
   static void mapping(IO &IO, llvm::DXContainerYAML::RootConstantsYaml &C);
 };
 
-template <> struct MappingTraits<dxbc::RootDescriptor> {
-  static void mapping(IO &IO, dxbc::RootDescriptor &D);
+template <> struct MappingTraits<llvm::DXContainerYAML::RootDescriptorYaml> {
+  static void mapping(IO &IO, llvm::DXContainerYAML::RootDescriptorYaml &D);
 };
 
 } // namespace yaml

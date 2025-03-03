@@ -230,8 +230,8 @@ void MappingTraits<llvm::DXContainerYAML::RootConstantsYaml>::mapping(
   IO.mapRequired("ShaderRegister", C.ShaderRegister);
 }
 
-void MappingTraits<dxbc::RootDescriptor>::mapping(IO &IO,
-                                                  dxbc::RootDescriptor &D) {
+void MappingTraits<llvm::DXContainerYAML::RootDescriptorYaml>::mapping(
+    IO &IO, llvm::DXContainerYAML::RootDescriptorYaml &D) {
   IO.mapRequired("DescriptorFlag", D.DescriptorFlag);
   IO.mapRequired("ShaderSpace", D.ShaderSpace);
   IO.mapRequired("ShaderRegistry", D.ShaderRegistry);

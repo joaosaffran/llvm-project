@@ -284,6 +284,13 @@ void DXContainerWriter::writeParts(raw_ostream &OS) {
         case dxbc::RootParameterType::Empty:
           llvm_unreachable("Invalid parameter type");
           break;
+        case dxbc::RootParameterType::CBV:
+        case dxbc::RootParameterType::SRV:
+        case dxbc::RootParameterType::UAV:
+          NewParam.Descriptor.DescriptorFlag = Param.Descriptor.DescriptorFlag;
+          NewParam.Descriptor.ShaderRegistry = Param.Descriptor.ShaderRegistry;
+          NewParam.Descriptor.ShaderSpace = Param.Descriptor.ShaderSpace;
+          break;
         }
 
         RS.Parameters.push_back(NewParam);

@@ -18,6 +18,7 @@ struct RootParameter {
   dxbc::RootParameterHeader Header;
   union {
     dxbc::RootConstants Constants;
+    dxbc::RootDescriptor Descriptor;
   };
 };
 struct RootSignatureDesc {

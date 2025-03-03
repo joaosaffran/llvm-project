@@ -332,7 +332,8 @@ Error DirectX::RootSignature::parse(StringRef Data) {
     case dxbc::RootParameterType::CBV:
     case dxbc::RootParameterType::SRV:
     case dxbc::RootParameterType::UAV: {
-      if (Error Err = readStruct(Data, Begin + Offset, NewParam.Descriptor))
+      if (Error Err = readStruct(Data, Begin + NewParam.Header.ParameterOffset,
+                                 NewParam.Descriptor))
         return Err;
       if (!dxbc::RootSignatureValidations::isValidRootDescriptorFlag(
               Version, NewParam.Descriptor.DescriptorFlag))

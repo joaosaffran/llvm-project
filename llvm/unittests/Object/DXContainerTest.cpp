@@ -1002,7 +1002,7 @@ TEST(RootSignature, ParseRootDescriptor) {
     DXContainer C =
         llvm::cantFail(DXContainer::create(getMemoryBuffer<132>(Buffer)));
 
-    const auto &RS = C.getRootSignature();
+    auto RS = C.getRootSignature();
     ASSERT_TRUE(RS.has_value());
     ASSERT_EQ(RS->getVersion(), 2u);
     ASSERT_EQ(RS->getNumParameters(), 1);
@@ -1011,12 +1011,12 @@ TEST(RootSignature, ParseRootDescriptor) {
     ASSERT_EQ(RS->getStaticSamplersOffset(), 0u);
     ASSERT_EQ(RS->getFlags(), 17u);
 
-    const auto RootParam = RS->getParameters()[0];
-    ASSERT_EQ((uint32_t)RootParam.ParameterType, 2u);
-    ASSERT_EQ((uint32_t)RootParam.ShaderVisibility, 5u);
-    ASSERT_EQ(RootParam.Descriptor.ShaderRegistry, 21u);
-    ASSERT_EQ(RootParam.Descriptor.ShaderSpace, 22u);
-    ASSERT_EQ(RootParam.Descriptor.DescriptorFlag,
+    object::DirectX::RootParameter *RootParam = RS->beginParams();
+    ASSERT_EQ((uint32_t)RootParam->Header.ParameterType, 2u);
+    ASSERT_EQ((uint32_t)RootParam->Header.ShaderVisibility, 5u);
+    ASSERT_EQ(RootParam->Descriptor.ShaderRegistry, 21u);
+    ASSERT_EQ(RootParam->Descriptor.ShaderSpace, 22u);
+    ASSERT_EQ(RootParam->Descriptor.DescriptorFlag,
               (dxbc::RootDescriptorFlag)1u);
   }
   {
