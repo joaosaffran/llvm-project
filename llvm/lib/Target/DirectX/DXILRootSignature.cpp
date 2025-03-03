@@ -17,7 +17,6 @@
 #include "llvm/Analysis/DXILMetadataAnalysis.h"
 #include "llvm/BinaryFormat/DXContainer.h"
 #include "llvm/IR/Constants.h"
-#include "llvm/IR/Metadata.h"
 #include "llvm/InitializePasses.h"
 #include "llvm/Pass.h"
 
@@ -135,7 +134,6 @@ static bool parseRootSignatureElement(LLVMContext *Ctx,
     return parseRootFlags(Ctx, RSD, Element);
   case RootSignatureElementKind::RootDescriptor:
     return parseRootDescriptor(Ctx, RSD, Element);
-
     break;
   case RootSignatureElementKind::Error:
     return reportError(Ctx, "Invalid Root Signature Element: " +

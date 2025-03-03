@@ -105,7 +105,6 @@ struct RootParameterYamlDesc {
       Descriptor.DescriptorFlag = Parameter->Descriptor.DescriptorFlag;
       Descriptor.ShaderRegistry = Parameter->Descriptor.ShaderRegistry;
       Descriptor.ShaderSpace = Parameter->Descriptor.ShaderSpace;
-
     } break;
 
     case dxbc::RootParameterType::Empty:
