@@ -25,12 +25,10 @@
 #include "llvm/InitializePasses.h"
 #include "llvm/MC/DXContainerPSVInfo.h"
 #include "llvm/Pass.h"
-#include "llvm/Support/Error.h"
 #include "llvm/Support/MD5.h"
 #include "llvm/TargetParser/Triple.h"
 #include "llvm/Transforms/Utils/ModuleUtils.h"
 #include <optional>
-#include <utility>
 
 using namespace llvm;
 using namespace llvm::dxil;

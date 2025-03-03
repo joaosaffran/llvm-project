@@ -18,14 +18,7 @@
 #include "llvm/ADT/StringRef.h"
 #include "llvm/BinaryFormat/DXContainer.h"
 #include "llvm/Object/DXContainer.h"
-#include "llvm/ObjectYAML/YAML.h"
-#include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/YAMLTraits.h"
-#include <array>
-#include <cstdint>
-#include <optional>
-#include <string>
-#include <vector>
 
 namespace llvm {
 namespace DXContainerYAML {
