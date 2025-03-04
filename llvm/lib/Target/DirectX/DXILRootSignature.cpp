@@ -178,6 +178,30 @@ static bool validate(LLVMContext *Ctx, const mcdxbc::RootSignatureDesc &RSD) {
           "Invalid Root Signature parameter shader visibility in metadata " +
               Twine((uint32_t)P.Header.ShaderVisibility));
     }
+
+    switch (P.Header.ParameterType) {
+
+    case dxbc::RootParameterType::CBV:
+    case dxbc::RootParameterType::SRV:
+    case dxbc::RootParameterType::UAV: {
+
+      if (!dxbc::RootSignatureValidations::isValidRootDescriptorFlag(
+              RSD.Header.Version, P.Descriptor.DescriptorFlag)) {
+        return reportError(Ctx,
+                           "Invalid descriptor flag in root descriptor " +
+                               Twine((uint32_t)P.Descriptor.DescriptorFlag));
+      }
+
+      if (!dxbc::RootSignatureValidations::isValidShaderSpace(
+              P.Descriptor.ShaderSpace)) {
+        return reportError(Ctx, "Invalid shader space in root descriptor " +
+                                    Twine(P.Descriptor.ShaderSpace));
+      }
+
+    } break;
+    default:
+      break;
+    }
   }
   return false;
 }
@@ -321,7 +345,8 @@ PreservedAnalyses RootSignatureAnalysisPrinter::run(Module &M,
       case dxbc::RootParameterType::UAV: {
         OS << indent(Space) << "- Descriptor: \n";
         Space++;
-        OS << indent(Space) << "Type: " << (uint32_t)P.ParameterType << " \n";
+        OS << indent(Space) << "Type: " << (uint32_t)P.Header.ParameterType
+           << " \n";
         OS << indent(Space) << "ShaderSpace: " << P.Descriptor.ShaderSpace
            << " \n";
         OS << indent(Space) << "ShaderRegistry: " << P.Descriptor.ShaderRegistry
