@@ -286,11 +286,20 @@ void DXContainerWriter::writeParts(raw_ostream &OS) {
           break;
         case dxbc::RootParameterType::CBV:
         case dxbc::RootParameterType::SRV:
-        case dxbc::RootParameterType::UAV:
-          NewParam.Descriptor.DescriptorFlag = Param.Descriptor.DescriptorFlag;
-          NewParam.Descriptor.ShaderRegistry = Param.Descriptor.ShaderRegistry;
-          NewParam.Descriptor.ShaderSpace = Param.Descriptor.ShaderSpace;
-          break;
+        case dxbc::RootParameterType::UAV: {
+          if (RS.Header.Version == 1) {
+            NewParam.DescriptorV10.ShaderRegister =
+                Param.Descriptor.ShaderRegister;
+            NewParam.DescriptorV10.RegisterSpace =
+                Param.Descriptor.RegisterSpace;
+          } else if (RS.Header.Version == 2) {
+            NewParam.DescriptorV11.Flags = Param.Descriptor.Flags;
+            NewParam.DescriptorV11.ShaderRegister =
+                Param.Descriptor.ShaderRegister;
+            NewParam.DescriptorV11.RegisterSpace =
+                Param.Descriptor.RegisterSpace;
+          }
+        } break;
         }
 
         RS.Parameters.push_back(NewParam);

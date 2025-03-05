@@ -19,6 +19,7 @@
 #include "llvm/BinaryFormat/DXContainer.h"
 #include "llvm/Object/DXContainer.h"
 #include "llvm/Support/YAMLTraits.h"
+#include <cstdint>
 
 namespace llvm {
 namespace DXContainerYAML {
@@ -76,9 +77,9 @@ struct RootConstantsYaml {
 };
 
 struct RootDescriptorYaml {
-  uint32_t ShaderRegistry;
-  uint32_t ShaderSpace;
-  dxbc::RootDescriptorFlag DescriptorFlag;
+  uint32_t ShaderRegister;
+  uint32_t RegisterSpace;
+  dxbc::RootDescriptorFlag Flags;
 };
 
 struct RootParameterYamlDesc {
@@ -87,7 +88,10 @@ struct RootParameterYamlDesc {
   uint32_t Offset;
 
   RootParameterYamlDesc() = default;
-  RootParameterYamlDesc(object::DirectX::RootParameter *Parameter) {
+  RootParameterYamlDesc(uint32_t Version,
+                        object::DirectX::RootParameter *Parameter) {
+    assert(dxbc::RootSignatureValidations::isValidVersion(Version));
+
     Type = Parameter->Header.ParameterType;
     Visibility = Parameter->Header.ShaderVisibility;
     Offset = Parameter->Header.ParameterOffset;
@@ -102,9 +106,15 @@ struct RootParameterYamlDesc {
     case dxbc::RootParameterType::CBV:
     case dxbc::RootParameterType::SRV:
     case dxbc::RootParameterType::UAV: {
-      Descriptor.DescriptorFlag = Parameter->Descriptor.DescriptorFlag;
-      Descriptor.ShaderRegistry = Parameter->Descriptor.ShaderRegistry;
-      Descriptor.ShaderSpace = Parameter->Descriptor.ShaderSpace;
+      if (Version == 1) {
+        Descriptor.Flags = dxbc::RootDescriptorFlag::None;
+        Descriptor.ShaderRegister = Parameter->DescriptorV10.ShaderRegister;
+        Descriptor.RegisterSpace = Parameter->DescriptorV10.RegisterSpace;
+      } else if (Version == 2) {
+        Descriptor.Flags = Parameter->DescriptorV11.Flags;
+        Descriptor.ShaderRegister = Parameter->DescriptorV11.ShaderRegister;
+        Descriptor.RegisterSpace = Parameter->DescriptorV11.RegisterSpace;
+      }
     } break;
 
     case dxbc::RootParameterType::Empty:

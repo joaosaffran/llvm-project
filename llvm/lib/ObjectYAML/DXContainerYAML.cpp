@@ -38,7 +38,7 @@ DXContainerYAML::RootSignatureYamlDesc::RootSignatureYamlDesc(
   uint32_t Flags = Data.getFlags();
   for (auto *P = Data.beginParams(); P != Data.endParams(); ++P) {
 
-    Parameters.push_back(RootParameterYamlDesc(P));
+    Parameters.push_back(RootParameterYamlDesc(Data.getVersion(), P));
   }
 #define ROOT_ELEMENT_FLAG(Num, Val)                                            \
   Val = (Flags & (uint32_t)dxbc::RootElementFlag::Val) > 0;
@@ -232,9 +232,9 @@ void MappingTraits<llvm::DXContainerYAML::RootConstantsYaml>::mapping(
 
 void MappingTraits<llvm::DXContainerYAML::RootDescriptorYaml>::mapping(
     IO &IO, llvm::DXContainerYAML::RootDescriptorYaml &D) {
-  IO.mapRequired("DescriptorFlag", D.DescriptorFlag);
-  IO.mapRequired("ShaderSpace", D.ShaderSpace);
-  IO.mapRequired("ShaderRegistry", D.ShaderRegistry);
+  IO.mapRequired("DescriptorFlag", D.Flags);
+  IO.mapRequired("ShaderSpace", D.RegisterSpace);
+  IO.mapRequired("ShaderRegistry", D.ShaderRegister);
 }
 
 void MappingTraits<llvm::DXContainerYAML::RootParameterYamlDesc>::mapping(

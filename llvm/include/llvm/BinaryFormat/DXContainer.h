@@ -565,14 +565,27 @@ struct ProgramSignatureElement {
 static_assert(sizeof(ProgramSignatureElement) == 32,
               "ProgramSignatureElement is misaligned");
 
-struct RootDescriptor {
-  uint32_t ShaderRegistry;
-  uint32_t ShaderSpace;
-  dxbc::RootDescriptorFlag DescriptorFlag;
+// Version 1.0 Root Descriptor
+struct RootDescriptorV10 {
+  uint32_t ShaderRegister;
+  uint32_t RegisterSpace;
 
   void swapBytes() {
-    sys::swapByteOrder(ShaderRegistry);
-    sys::swapByteOrder(ShaderSpace);
+    sys::swapByteOrder(ShaderRegister);
+    sys::swapByteOrder(RegisterSpace);
+  }
+};
+
+// Version 1.1 Root Descriptor
+struct RootDescriptorV11 {
+  uint32_t ShaderRegister;
+  uint32_t RegisterSpace;
+  dxbc::RootDescriptorFlag Flags;
+
+  void swapBytes() {
+    sys::swapByteOrder(ShaderRegister);
+    sys::swapByteOrder(RegisterSpace);
+    sys::swapByteOrder(Flags);
   }
 };
 
@@ -660,12 +673,13 @@ struct RootSignatureValidations {
     assert(isValidVersion(Version));
 
     if (Version == 1)
-      return Flag == dxbc::RootDescriptorFlag::None;
+      return false;
 
     switch (Flag) {
-    case RootDescriptorFlag::DataVolatile:
-    case RootDescriptorFlag::DataStaticWhileSetAtExecute:
-    case RootDescriptorFlag::DataStatic:
+      // ToDo: This needs to be a enum
+    case llvm::dxbc::RootDescriptorFlag::DataStatic:
+    case llvm::dxbc::RootDescriptorFlag::DataStaticWhileSetAtExecute:
+    case llvm::dxbc::RootDescriptorFlag::DataVolatile:
       return true;
     default:
       return false;

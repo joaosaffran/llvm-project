@@ -51,17 +51,18 @@ static bool parseRootDescriptor(LLVMContext *Ctx,
   NewParam.Header.ShaderVisibility =
       (dxbc::ShaderVisibility)ShaderVisibility->getZExtValue();
 
+  // ToDo: Versioning is yet to be supported in the metadata representation.
   auto *ShaderRegister =
       mdconst::extract<ConstantInt>(RootDescNode->getOperand(2));
-  NewParam.Descriptor.ShaderRegistry = ShaderRegister->getZExtValue();
+  NewParam.DescriptorV11.ShaderRegister = ShaderRegister->getZExtValue();
 
   auto *ShaderSpace =
-      mdconst::extract<ConstantInt>(RootDescNode->getOperand(2));
-  NewParam.Descriptor.ShaderSpace = ShaderSpace->getZExtValue();
+      mdconst::extract<ConstantInt>(RootDescNode->getOperand(3));
+  NewParam.DescriptorV11.RegisterSpace = ShaderSpace->getZExtValue();
 
   auto *DescriptorFlag =
-      mdconst::extract<ConstantInt>(RootDescNode->getOperand(2));
-  NewParam.Descriptor.DescriptorFlag =
+      mdconst::extract<ConstantInt>(RootDescNode->getOperand(4));
+  NewParam.DescriptorV11.Flags =
       (dxbc::RootDescriptorFlag)DescriptorFlag->getZExtValue();
 
   RSD.Parameters.push_back(NewParam);

@@ -12,6 +12,7 @@
 #include "llvm/Support/Alignment.h"
 #include "llvm/Support/Endian.h"
 #include "llvm/Support/FormatVariadic.h"
+#include <cstdint>
 
 using namespace llvm;
 using namespace llvm::object;
@@ -332,19 +333,22 @@ Error DirectX::RootSignature::parse(StringRef Data) {
     case dxbc::RootParameterType::CBV:
     case dxbc::RootParameterType::SRV:
     case dxbc::RootParameterType::UAV: {
-      if (Error Err = readStruct(Data, Begin + NewParam.Header.ParameterOffset,
-                                 NewParam.Descriptor))
-        return Err;
-      if (!dxbc::RootSignatureValidations::isValidRootDescriptorFlag(
-              Version, NewParam.Descriptor.DescriptorFlag))
-        return validationFailed(
-            "unsupported root descriptor flag value read: " +
-            llvm::Twine((uint32_t)NewParam.Descriptor.DescriptorFlag));
-      if (!dxbc::RootSignatureValidations::isValidShaderSpace(
-              NewParam.Descriptor.ShaderSpace))
-        return validationFailed(
-            "invalid shader space value read: " +
-            llvm::Twine((uint32_t)NewParam.Descriptor.ShaderSpace));
+      if (Version == 2) {
+        if (Error Err =
+                readStruct(Data, Begin + NewParam.Header.ParameterOffset,
+                           NewParam.DescriptorV11))
+          return Err;
+        if (!dxbc::RootSignatureValidations::isValidRootDescriptorFlag(
+                Version, NewParam.DescriptorV11.Flags))
+          return validationFailed(
+              "unsupported root descriptor flag value read: " +
+              llvm::Twine((uint32_t)NewParam.DescriptorV11.Flags));
+        if (!dxbc::RootSignatureValidations::isValidShaderSpace(
+                NewParam.DescriptorV11.RegisterSpace))
+          return validationFailed(
+              "invalid shader space value read: " +
+              llvm::Twine(NewParam.DescriptorV11.RegisterSpace));
+      }
     } break;
     }
 

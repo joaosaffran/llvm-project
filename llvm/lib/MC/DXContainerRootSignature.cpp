@@ -72,12 +72,20 @@ void RootSignatureDesc::write(raw_ostream &OS) const {
     case dxbc::RootParameterType::CBV:
     case dxbc::RootParameterType::SRV:
     case dxbc::RootParameterType::UAV: {
-      support::endian::write(BOS, P.Descriptor.ShaderRegistry,
-                             llvm::endianness::little);
-      support::endian::write(BOS, P.Descriptor.ShaderSpace,
-                             llvm::endianness::little);
-      support::endian::write(BOS, P.Descriptor.DescriptorFlag,
-                             llvm::endianness::little);
+      if (Header.Version == 1) {
+        support::endian::write(BOS, P.DescriptorV10.ShaderRegister,
+                               llvm::endianness::little);
+        support::endian::write(BOS, P.DescriptorV10.RegisterSpace,
+                               llvm::endianness::little);
+      } else if (Header.Version == 2) {
+        support::endian::write(BOS, P.DescriptorV11.ShaderRegister,
+                               llvm::endianness::little);
+        support::endian::write(BOS, P.DescriptorV11.RegisterSpace,
+                               llvm::endianness::little);
+        support::endian::write(BOS, P.DescriptorV11.Flags,
+                               llvm::endianness::little);
+      }
+
     } break;
     case dxbc::RootParameterType::Empty:
       llvm_unreachable("Invalid RootParameterType");
