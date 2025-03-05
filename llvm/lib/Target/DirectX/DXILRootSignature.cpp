@@ -184,18 +184,26 @@ static bool validate(LLVMContext *Ctx, const mcdxbc::RootSignatureDesc &RSD) {
     case dxbc::RootParameterType::CBV:
     case dxbc::RootParameterType::SRV:
     case dxbc::RootParameterType::UAV: {
+      if (RSD.Header.Version == 1) {
 
-      if (!dxbc::RootSignatureValidations::isValidRootDescriptorFlag(
-              RSD.Header.Version, P.Descriptor.DescriptorFlag)) {
-        return reportError(Ctx,
-                           "Invalid descriptor flag in root descriptor " +
-                               Twine((uint32_t)P.Descriptor.DescriptorFlag));
-      }
+        if (!dxbc::RootSignatureValidations::isValidShaderSpace(
+                P.DescriptorV10.RegisterSpace)) {
+          return reportError(Ctx, "Invalid shader space in root descriptor " +
+                                      Twine(P.DescriptorV10.RegisterSpace));
+        }
+      } else if (RSD.Header.Version == 2) {
+        if (!dxbc::RootSignatureValidations::isValidShaderSpace(
+                P.DescriptorV11.RegisterSpace)) {
+          return reportError(Ctx, "Invalid shader space in root descriptor " +
+                                      Twine(P.DescriptorV10.RegisterSpace));
+        }
 
-      if (!dxbc::RootSignatureValidations::isValidShaderSpace(
-              P.Descriptor.ShaderSpace)) {
-        return reportError(Ctx, "Invalid shader space in root descriptor " +
-                                    Twine(P.Descriptor.ShaderSpace));
+        if (!dxbc::RootSignatureValidations::isValidRootDescriptorFlag(
+                RSD.Header.Version, P.DescriptorV11.Flags)) {
+          return reportError(Ctx,
+                             "Invalid descriptor flag in root descriptor " +
+                                 Twine((uint32_t)P.DescriptorV11.Flags));
+        }
       }
 
     } break;
@@ -345,15 +353,21 @@ PreservedAnalyses RootSignatureAnalysisPrinter::run(Module &M,
       case dxbc::RootParameterType::UAV: {
         OS << indent(Space) << "- Descriptor: \n";
         Space++;
-        OS << indent(Space) << "Type: " << (uint32_t)P.Header.ParameterType
-           << " \n";
-        OS << indent(Space) << "ShaderSpace: " << P.Descriptor.ShaderSpace
-           << " \n";
-        OS << indent(Space) << "ShaderRegistry: " << P.Descriptor.ShaderRegistry
-           << " \n";
-        OS << indent(Space)
-           << "DescriptorFlag: " << (uint32_t)P.Descriptor.DescriptorFlag
-           << " \n";
+        if (RS.Header.Version == 1) {
+          OS << indent(Space) << "Type: " << (uint32_t)P.Header.ParameterType
+             << " \n";
+          OS << indent(Space)
+             << "ShaderSpace: " << P.DescriptorV10.RegisterSpace << " \n";
+          OS << indent(Space)
+             << "ShaderRegistry: " << P.DescriptorV10.ShaderRegister << " \n";
+        } else if (RS.Header.Version == 2) {
+          OS << indent(Space)
+             << "ShaderSpace: " << P.DescriptorV11.RegisterSpace << " \n";
+          OS << indent(Space)
+             << "ShaderRegistry: " << P.DescriptorV11.ShaderRegister << " \n";
+          OS << indent(Space)
+             << "DescriptorFlag: " << (uint32_t)P.DescriptorV11.Flags << " \n";
+        }
         Space--;
       } break;
       case dxbc::RootParameterType::Empty:
