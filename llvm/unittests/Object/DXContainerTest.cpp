@@ -912,7 +912,7 @@ TEST(RootSignature, ParseRootConstant) {
     auto RS = C.getRootSignature();
     ASSERT_TRUE(RS.has_value());
     ASSERT_EQ(RS->getVersion(), 2u);
-    ASSERT_EQ(RS->getNumParameters(), 1);
+    ASSERT_EQ(RS->getNumParameters(), 1u);
     ASSERT_EQ(RS->getRootParametersOffset(), 24u);
     ASSERT_EQ(RS->getNumStaticSamplers(), 0u);
     ASSERT_EQ(RS->getStaticSamplersOffset(), 44u);
@@ -1004,7 +1004,7 @@ TEST(RootSignature, ParseRootDescriptor) {
     auto RS = C.getRootSignature();
     ASSERT_TRUE(RS.has_value());
     ASSERT_EQ(RS->getVersion(), 2u);
-    ASSERT_EQ(RS->getNumParameters(), 1);
+    ASSERT_EQ(RS->getNumParameters(), 1u);
     ASSERT_EQ(RS->getRootParametersOffset(), 24u);
     ASSERT_EQ(RS->getNumStaticSamplers(), 0u);
     ASSERT_EQ(RS->getStaticSamplersOffset(), 0u);
@@ -1015,7 +1015,7 @@ TEST(RootSignature, ParseRootDescriptor) {
     ASSERT_EQ((uint32_t)RootParam->Header.ShaderVisibility, 5u);
     ASSERT_EQ(RootParam->DescriptorV11.ShaderRegister, 21u);
     ASSERT_EQ(RootParam->DescriptorV11.RegisterSpace, 22u);
-    ASSERT_EQ(RootParam->DescriptorV11.Flags, (dxbc::RootDescriptorFlag)1u);
+    ASSERT_EQ(RootParam->DescriptorV11.Flags, 1u);
   }
   {
     // root descriptor flag was set to an invalid value

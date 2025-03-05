@@ -16,6 +16,7 @@
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/SwapByteOrder.h"
 #include "llvm/TargetParser/Triple.h"
+#include <cstdint>
 
 namespace llvm {
 template <typename T> struct EnumEntry;
@@ -169,12 +170,10 @@ enum class ShaderVisibility : uint32_t {
 
 ArrayRef<EnumEntry<ShaderVisibility>> getShaderVisibility();
 
-#define ROOT_DESCRIPTOR_FLAG(Val, Enum) Enum = Val,
+#define ROOT_DESCRIPTOR_FLAG(Num, Val) Val = 1ull << Num,
 enum class RootDescriptorFlag : uint32_t {
 #include "DXContainerConstants.def"
 };
-
-ArrayRef<EnumEntry<RootDescriptorFlag>> getRootDescriptorFlags();
 
 PartType parsePartType(StringRef S);
 
@@ -580,7 +579,7 @@ struct RootDescriptorV10 {
 struct RootDescriptorV11 {
   uint32_t ShaderRegister;
   uint32_t RegisterSpace;
-  dxbc::RootDescriptorFlag Flags;
+  uint32_t Flags;
 
   void swapBytes() {
     sys::swapByteOrder(ShaderRegister);
@@ -668,22 +667,13 @@ struct RootSignatureValidations {
     }
   }
 
-  static bool isValidRootDescriptorFlag(uint32_t Version,
-                                        dxbc::RootDescriptorFlag Flag) {
+  static bool isValidRootDescriptorFlag(uint32_t Version, uint32_t Flag) {
     assert(isValidVersion(Version));
 
     if (Version == 1)
       return false;
 
-    switch (Flag) {
-      // ToDo: This needs to be a enum
-    case llvm::dxbc::RootDescriptorFlag::DataStatic:
-    case llvm::dxbc::RootDescriptorFlag::DataStaticWhileSetAtExecute:
-    case llvm::dxbc::RootDescriptorFlag::DataVolatile:
-      return true;
-    default:
-      return false;
-    }
+    return Flag < 15;
   }
 
   static bool isValidShaderSpace(uint32_t Space) {

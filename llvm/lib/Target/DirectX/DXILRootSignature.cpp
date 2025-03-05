@@ -62,8 +62,7 @@ static bool parseRootDescriptor(LLVMContext *Ctx,
 
   auto *DescriptorFlag =
       mdconst::extract<ConstantInt>(RootDescNode->getOperand(4));
-  NewParam.DescriptorV11.Flags =
-      (dxbc::RootDescriptorFlag)DescriptorFlag->getZExtValue();
+  NewParam.DescriptorV11.Flags = DescriptorFlag->getZExtValue();
 
   RSD.Parameters.push_back(NewParam);
 

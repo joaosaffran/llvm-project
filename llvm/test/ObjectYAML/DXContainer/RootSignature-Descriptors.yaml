@@ -28,19 +28,19 @@ Parts:
         Descriptor:
           ShaderRegistry: 21
           ShaderSpace: 22
-          DescriptorFlag: DataVolatile     
+          DataVolatile: true     
       - ParameterType: SRV
         ShaderVisibility: Geometry
         Descriptor:
           ShaderRegistry: 31
           ShaderSpace: 32
-          DescriptorFlag: DataStaticWhileSetAtExecute  
+          DataStaticWhileSetAtExecute: true  
       - ParameterType: UAV
         ShaderVisibility: Hull
         Descriptor:
           ShaderRegistry: 41
           ShaderSpace: 42
-          DescriptorFlag: DataStatic  
+          DataStatic: true  
       AllowInputAssemblerInputLayout: true
       DenyGeometryShaderRootAccess: true
 
@@ -60,20 +60,20 @@ Parts:
 #CHECK-NEXT:        - ParameterType:   CBV
 #CHECK-NEXT:          ShaderVisibility: Pixel
 #CHECK-NEXT:          Descriptor:
-#CHECK-NEXT:            DescriptorFlag:  DataVolatile
 #CHECK-NEXT:            ShaderSpace:     22
 #CHECK-NEXT:            ShaderRegistry:  21
+#CHECK-NEXT:            DataVolatile: true
 #CHECK-NEXT:        - ParameterType:   SRV
 #CHECK-NEXT:          ShaderVisibility: Geometry
 #CHECK-NEXT:          Descriptor:
-#CHECK-NEXT:            DescriptorFlag:  DataStaticWhileSetAtExecute
 #CHECK-NEXT:            ShaderSpace:     32
 #CHECK-NEXT:            ShaderRegistry:  31
+#CHECK-NEXT:            DataStaticWhileSetAtExecute: true
 #CHECK-NEXT:        - ParameterType:   UAV
 #CHECK-NEXT:          ShaderVisibility: Hull
 #CHECK-NEXT:          Descriptor:
-#CHECK-NEXT:            DescriptorFlag:  DataStatic
 #CHECK-NEXT:            ShaderSpace:     42
 #CHECK-NEXT:            ShaderRegistry:  41
+#CHECK-NEXT:            DataStatic: true
 #CHECK-NEXT:      AllowInputAssemblerInputLayout: true
 #CHECK-NEXT:      DenyGeometryShaderRootAccess: true

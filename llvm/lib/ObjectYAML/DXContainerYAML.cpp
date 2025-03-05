@@ -16,6 +16,7 @@
 #include "llvm/BinaryFormat/DXContainer.h"
 #include "llvm/Object/DXContainer.h"
 #include "llvm/Support/ScopedPrinter.h"
+#include <cstdint>
 
 namespace llvm {
 
@@ -42,6 +43,26 @@ DXContainerYAML::RootSignatureYamlDesc::RootSignatureYamlDesc(
   }
 #define ROOT_ELEMENT_FLAG(Num, Val)                                            \
   Val = (Flags & (uint32_t)dxbc::RootElementFlag::Val) > 0;
+#include "llvm/BinaryFormat/DXContainerConstants.def"
+}
+
+DXContainerYAML::RootDescriptorYaml::RootDescriptorYaml() {
+#define ROOT_DESCRIPTOR_FLAG(Num, Val) Val = false;
+#include "llvm/BinaryFormat/DXContainerConstants.def"
+}
+
+uint32_t DXContainerYAML::RootDescriptorYaml::getEncodedFlags() const {
+  uint64_t Flag = 0;
+#define ROOT_DESCRIPTOR_FLAG(Num, Val)                                         \
+  if (Val)                                                                     \
+    Flag |= (uint32_t)dxbc::RootDescriptorFlag::Val;
+#include "llvm/BinaryFormat/DXContainerConstants.def"
+  return Flag;
+}
+
+void DXContainerYAML::RootDescriptorYaml::setFlags(uint32_t Flags) {
+#define ROOT_DESCRIPTOR_FLAG(Num, Val)                                         \
+  Val = (Flags & (uint32_t)dxbc::RootDescriptorFlag::Val) > 0;
 #include "llvm/BinaryFormat/DXContainerConstants.def"
 }
 
@@ -232,9 +253,10 @@ void MappingTraits<llvm::DXContainerYAML::RootConstantsYaml>::mapping(
 
 void MappingTraits<llvm::DXContainerYAML::RootDescriptorYaml>::mapping(
     IO &IO, llvm::DXContainerYAML::RootDescriptorYaml &D) {
-  IO.mapRequired("DescriptorFlag", D.Flags);
   IO.mapRequired("ShaderSpace", D.RegisterSpace);
   IO.mapRequired("ShaderRegistry", D.ShaderRegister);
+#define ROOT_DESCRIPTOR_FLAG(Num, Val) IO.mapOptional(#Val, D.Val, false);
+#include "llvm/BinaryFormat/DXContainerConstants.def"
 }
 
 void MappingTraits<llvm::DXContainerYAML::RootParameterYamlDesc>::mapping(
@@ -367,12 +389,6 @@ void ScalarEnumerationTraits<dxbc::RootParameterType>::enumeration(
 void ScalarEnumerationTraits<dxbc::ShaderVisibility>::enumeration(
     IO &IO, dxbc::ShaderVisibility &Value) {
   for (const auto &E : dxbc::getShaderVisibility())
-    IO.enumCase(Value, E.Name.str().c_str(), E.Value);
-}
-
-void ScalarEnumerationTraits<dxbc::RootDescriptorFlag>::enumeration(
-    IO &IO, dxbc::RootDescriptorFlag &Value) {
-  for (const auto &E : dxbc::getRootDescriptorFlags())
     IO.enumCase(Value, E.Name.str().c_str(), E.Value);
 }
 

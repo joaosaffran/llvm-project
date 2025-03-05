@@ -68,8 +68,6 @@ struct ShaderHash {
   std::vector<llvm::yaml::Hex8> Digest;
 };
 
-#define ROOT_ELEMENT_FLAG(Num, Val) bool Val = false;
-
 struct RootConstantsYaml {
   uint32_t ShaderRegister;
   uint32_t RegisterSpace;
@@ -79,7 +77,14 @@ struct RootConstantsYaml {
 struct RootDescriptorYaml {
   uint32_t ShaderRegister;
   uint32_t RegisterSpace;
-  dxbc::RootDescriptorFlag Flags;
+
+  RootDescriptorYaml();
+
+  uint32_t getEncodedFlags() const;
+  void setFlags(uint32_t Flag);
+
+#define ROOT_DESCRIPTOR_FLAG(Num, Val) bool Val;
+#include "llvm/BinaryFormat/DXContainerConstants.def"
 };
 
 struct RootParameterYamlDesc {
@@ -87,7 +92,8 @@ struct RootParameterYamlDesc {
   dxbc::ShaderVisibility Visibility;
   uint32_t Offset;
 
-  RootParameterYamlDesc() = default;
+  RootParameterYamlDesc(){};
+
   RootParameterYamlDesc(uint32_t Version,
                         object::DirectX::RootParameter *Parameter) {
     assert(dxbc::RootSignatureValidations::isValidVersion(Version));
@@ -107,11 +113,10 @@ struct RootParameterYamlDesc {
     case dxbc::RootParameterType::SRV:
     case dxbc::RootParameterType::UAV: {
       if (Version == 1) {
-        Descriptor.Flags = dxbc::RootDescriptorFlag::None;
         Descriptor.ShaderRegister = Parameter->DescriptorV10.ShaderRegister;
         Descriptor.RegisterSpace = Parameter->DescriptorV10.RegisterSpace;
       } else if (Version == 2) {
-        Descriptor.Flags = Parameter->DescriptorV11.Flags;
+        Descriptor.setFlags(Parameter->DescriptorV11.Flags);
         Descriptor.ShaderRegister = Parameter->DescriptorV11.ShaderRegister;
         Descriptor.RegisterSpace = Parameter->DescriptorV11.RegisterSpace;
       }
@@ -140,7 +145,7 @@ struct RootSignatureYamlDesc {
   SmallVector<RootParameterYamlDesc> Parameters;
 
   uint32_t getEncodedFlags();
-
+#define ROOT_ELEMENT_FLAG(Num, Val) bool Val = false;
 #include "llvm/BinaryFormat/DXContainerConstants.def"
 };
 

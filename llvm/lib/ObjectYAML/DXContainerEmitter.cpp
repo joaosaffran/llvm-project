@@ -293,7 +293,7 @@ void DXContainerWriter::writeParts(raw_ostream &OS) {
             NewParam.DescriptorV10.RegisterSpace =
                 Param.Descriptor.RegisterSpace;
           } else if (RS.Header.Version == 2) {
-            NewParam.DescriptorV11.Flags = Param.Descriptor.Flags;
+            NewParam.DescriptorV11.Flags = Param.Descriptor.getEncodedFlags();
             NewParam.DescriptorV11.ShaderRegister =
                 Param.Descriptor.ShaderRegister;
             NewParam.DescriptorV11.RegisterSpace =
