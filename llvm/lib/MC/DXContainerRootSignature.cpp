@@ -8,7 +8,10 @@
 
 #include "llvm/MC/DXContainerRootSignature.h"
 #include "llvm/ADT/SmallString.h"
+#include "llvm/BinaryFormat/DXContainer.h"
 #include "llvm/Support/EndianStream.h"
+#include <cstddef>
+#include <cstdint>
 
 using namespace llvm;
 using namespace llvm::mcdxbc;
@@ -86,6 +89,43 @@ void RootSignatureDesc::write(raw_ostream &OS) const {
                                llvm::endianness::little);
       }
 
+    } break;
+    case llvm::dxbc::RootParameterType::DescriptorTable: {
+      support::endian::write(BOS, (uint32_t)P.DescriptorTable.size(),
+                             llvm::endianness::little);
+      uint32_t DescTableOffset = writePlaceholder(BOS);
+      rewriteOffset(BOS, DescTableOffset);
+
+      for (size_t I = 0; I < P.DescriptorTable.size(); I++) {
+        const auto &DT = P.DescriptorTable[I];
+        if (Header.Version == 1) {
+          support::endian::write(BOS, DT.RangesV10.RangeType,
+                                 llvm::endianness::little);
+          support::endian::write(BOS, DT.RangesV10.NumDescriptors,
+                                 llvm::endianness::little);
+          support::endian::write(BOS, DT.RangesV10.BaseShaderRegister,
+                                 llvm::endianness::little);
+          support::endian::write(BOS, DT.RangesV10.RegisterSpace,
+                                 llvm::endianness::little);
+          support::endian::write(BOS, DT.RangesV10.RegisterSpace,
+                                 llvm::endianness::little);
+        } else if (Header.Version == 2) {
+          support::endian::write(BOS, DT.RangesV11.RangeType,
+                                 llvm::endianness::little);
+          support::endian::write(BOS, DT.RangesV11.NumDescriptors,
+                                 llvm::endianness::little);
+          support::endian::write(BOS, DT.RangesV11.BaseShaderRegister,
+                                 llvm::endianness::little);
+          support::endian::write(BOS, DT.RangesV11.RegisterSpace,
+                                 llvm::endianness::little);
+          support::endian::write(BOS, DT.RangesV11.RegisterSpace,
+                                 llvm::endianness::little);
+          support::endian::write(BOS, DT.RangesV11.Flags,
+                                 llvm::endianness::little);
+        }
+        // Offset In Descriptors From Table Start
+        support::endian::write(BOS, (uint32_t)I, llvm::endianness::little);
+      }
     } break;
     case dxbc::RootParameterType::Empty:
       llvm_unreachable("Invalid RootParameterType");

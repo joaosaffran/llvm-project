@@ -327,9 +327,6 @@ Error DirectX::RootSignature::parse(StringRef Data) {
                                  NewParam.Constants))
         return Err;
       break;
-    case dxbc::RootParameterType::Empty:
-      // unreachable  because it was validated and assigned before this point.
-      llvm_unreachable("Invalid value for RootParameterType");
     case dxbc::RootParameterType::CBV:
     case dxbc::RootParameterType::SRV:
     case dxbc::RootParameterType::UAV: {
@@ -350,6 +347,9 @@ Error DirectX::RootSignature::parse(StringRef Data) {
               llvm::Twine(NewParam.DescriptorV11.RegisterSpace));
       }
     } break;
+    case dxbc::RootParameterType::Empty:
+      // unreachable  because it was validated and assigned before this point.
+      llvm_unreachable("Invalid value for RootParameterType");
     }
 
     Parameters.push_back(NewParam);

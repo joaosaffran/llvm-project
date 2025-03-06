@@ -14,12 +14,18 @@ namespace llvm {
 class raw_ostream;
 namespace mcdxbc {
 
+union DescriptorTable {
+  dxbc::DescriptorRangeV10 RangesV10;
+  dxbc::DescriptorRangeV11 RangesV11;
+};
+
 struct RootParameter {
   dxbc::RootParameterHeader Header;
   union {
     dxbc::RootConstants Constants;
     dxbc::RootDescriptorV10 DescriptorV10;
     dxbc::RootDescriptorV11 DescriptorV11;
+    SmallVector<DescriptorTable> DescriptorTable;
   };
 };
 struct RootSignatureDesc {
