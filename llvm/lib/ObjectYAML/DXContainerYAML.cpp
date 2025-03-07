@@ -272,9 +272,29 @@ void MappingTraits<llvm::DXContainerYAML::RootParameterYamlDesc>::mapping(
   case dxbc::RootParameterType::UAV:
     IO.mapRequired("Descriptor", P.Descriptor);
     break;
+  case dxbc::RootParameterType::DescriptorTable:
+    IO.mapRequired("Table", P.Table);
+    break;
   case dxbc::RootParameterType::Empty:
     llvm_unreachable("Invalid value for ParameterType");
   }
+}
+
+void MappingTraits<llvm::DXContainerYAML::DescriptorTableYaml>::mapping(
+    IO &IO, llvm::DXContainerYAML::DescriptorTableYaml &P) {
+  IO.mapRequired("DescriptorRangesOffset", P.DescriptorRangesOffset);
+  IO.mapRequired("NumDescriptorRanges", P.NumDescriptorRanges);
+  IO.mapRequired("Ranges", P.Ranges);
+}
+
+void MappingTraits<llvm::DXContainerYAML::DescriptorRangeYaml>::mapping(
+    IO &IO, llvm::DXContainerYAML::DescriptorRangeYaml &P) {
+  IO.mapRequired("DescriptorRangesOffset", P.OffsetInDescriptorsFromTableStart);
+  IO.mapRequired("NumDescriptorRanges", P.NumDescriptors);
+  IO.mapRequired("BaseShaderRegister", P.BaseShaderRegister);
+  IO.mapRequired("RegisterSpace", P.RegisterSpace);
+  IO.mapRequired("RangeType", P.RangeType);
+  IO.mapRequired("Flags", P.Flags);
 }
 
 void MappingTraits<DXContainerYAML::Part>::mapping(IO &IO,
@@ -383,6 +403,12 @@ void ScalarEnumerationTraits<dxbc::SigComponentType>::enumeration(
 void ScalarEnumerationTraits<dxbc::RootParameterType>::enumeration(
     IO &IO, dxbc::RootParameterType &Value) {
   for (const auto &E : dxbc::getRootParameterTypes())
+    IO.enumCase(Value, E.Name.str().c_str(), E.Value);
+}
+
+void ScalarEnumerationTraits<dxbc::DescriptorRangeType>::enumeration(
+    IO &IO, dxbc::DescriptorRangeType &Value) {
+  for (const auto &E : dxbc::getDescriptorRangeTypes())
     IO.enumCase(Value, E.Name.str().c_str(), E.Value);
 }
 

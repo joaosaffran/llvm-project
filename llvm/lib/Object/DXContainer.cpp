@@ -12,6 +12,7 @@
 #include "llvm/Support/Alignment.h"
 #include "llvm/Support/Endian.h"
 #include "llvm/Support/FormatVariadic.h"
+#include <cstddef>
 #include <cstdint>
 
 using namespace llvm;
@@ -292,18 +293,16 @@ Error DirectX::RootSignature::parse(StringRef Data) {
 
   Current = Begin + RootParametersOffset;
   for (uint32_t It = 0; It < NumParameters; It++) {
-    DirectX::RootParameter NewParam;
 
-    NewParam.Header.ParameterType =
+    auto ParameterType =
         support::endian::read<dxbc::RootParameterType,
                               llvm::endianness::little>(Current);
-    if (!dxbc::RootSignatureValidations::isValidParameterType(
-            NewParam.Header.ParameterType))
-      return validationFailed(
-          "unsupported parameter type value read: " +
-          llvm::Twine((uint32_t)NewParam.Header.ParameterType));
-
+    if (!dxbc::RootSignatureValidations::isValidParameterType(ParameterType))
+      return validationFailed("unsupported parameter type value read: " +
+                              llvm::Twine((uint32_t)ParameterType));
     Current += sizeof(dxbc::RootParameterType);
+
+    DirectX::RootParameter NewParam(ParameterType, Version);
 
     NewParam.Header.ShaderVisibility =
         support::endian::read<dxbc::ShaderVisibility, llvm::endianness::little>(
@@ -346,6 +345,27 @@ Error DirectX::RootSignature::parse(StringRef Data) {
               "invalid shader space value read: " +
               llvm::Twine(NewParam.DescriptorV11.RegisterSpace));
       }
+    } break;
+    case llvm::dxbc::RootParameterType::DescriptorTable: {
+      if (Error Err = readStruct(Data, Begin + NewParam.Header.ParameterOffset,
+                                 NewParam.DescriptorTable.Header))
+        return Err;
+
+      for (size_t I = 0;
+           I < NewParam.DescriptorTable.Header.NumDescriptorRanges; I++) {
+        if (Version == 1) {
+          dxbc::DescriptorRangeV10 NewRange;
+          if (Error Err = readStruct(Data, Current, NewRange))
+            return Err;
+          NewParam.DescriptorTable.Ranges.push_back(NewRange);
+        } else if (Version == 2) {
+          dxbc::DescriptorRangeV11 NewRange;
+          if (Error Err = readStruct(Data, Current, NewRange))
+            return Err;
+          NewParam.DescriptorTable.Ranges.push_back(NewRange);
+        }
+      }
+
     } break;
     case dxbc::RootParameterType::Empty:
       // unreachable  because it was validated and assigned before this point.

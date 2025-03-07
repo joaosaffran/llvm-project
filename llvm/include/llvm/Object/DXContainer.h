@@ -19,9 +19,11 @@
 #include "llvm/ADT/StringRef.h"
 #include "llvm/BinaryFormat/DXContainer.h"
 #include "llvm/Support/Error.h"
+#include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/MemoryBufferRef.h"
 #include "llvm/TargetParser/Triple.h"
 #include <array>
+#include <cstdint>
 #include <variant>
 
 namespace llvm {
@@ -116,13 +118,129 @@ template <typename T> struct ViewArray {
 };
 
 namespace DirectX {
+
+struct DescriptorTable {
+  dxbc::RootDescriptorTable Header;
+
+  SmallVector<std::variant<dxbc::DescriptorRangeV10, dxbc::DescriptorRangeV11>>
+      Ranges;
+
+  // Add explicit default constructor and destructor
+  DescriptorTable() = default;
+  ~DescriptorTable() = default;
+
+  // Add copy constructor and assignment operator
+  DescriptorTable(const DescriptorTable &) = default;
+  DescriptorTable &operator=(const DescriptorTable &) = default;
+
+  // Add move constructor and assignment operator
+  DescriptorTable(DescriptorTable &&) = default;
+  DescriptorTable &operator=(DescriptorTable &&) = default;
+};
+
 struct RootParameter {
+  dxbc::RootParameterType Type;
+  uint32_t Version;
+
   dxbc::RootParameterHeader Header;
   union {
     dxbc::RootConstants Constants;
     dxbc::RootDescriptorV10 DescriptorV10;
     dxbc::RootDescriptorV11 DescriptorV11;
+    DescriptorTable DescriptorTable;
   };
+
+  RootParameter(dxbc::RootParameterType Type, uint32_t Version)
+      : Type(Type), Version(Version) {
+    Header.ParameterType = Type;
+  }
+
+  // Destructor that properly cleans up the active union member
+  ~RootParameter() {
+    switch (Header.ParameterType) {
+    case dxbc::RootParameterType::Constants32Bit:
+      Constants.~RootConstants();
+      break;
+    case dxbc::RootParameterType::CBV:
+    case dxbc::RootParameterType::SRV:
+    case dxbc::RootParameterType::UAV:
+      if (Version == 1)
+        DescriptorV10.~RootDescriptorV10();
+      if (Version == 2)
+        DescriptorV11.~RootDescriptorV11();
+      break;
+    case llvm::dxbc::RootParameterType::DescriptorTable:
+      DescriptorTable.~DescriptorTable();
+      break;
+
+    default:
+      llvm_unreachable("Invalid Root parameter type");
+    }
+  }
+
+  // Copy constructor
+  RootParameter(const RootParameter &Other)
+      : Type(Other.Header.ParameterType), Header(Other.Header) {
+    switch (Header.ParameterType) {
+    case dxbc::RootParameterType::Constants32Bit:
+      new (&Constants) dxbc::RootConstants(Other.Constants);
+      break;
+    case dxbc::RootParameterType::CBV:
+    case dxbc::RootParameterType::SRV:
+    case dxbc::RootParameterType::UAV:
+      if (Version == 1)
+        new (&DescriptorV10) dxbc::RootDescriptorV10(Other.DescriptorV10);
+      else if (Version == 2)
+        new (&DescriptorV11) dxbc::RootDescriptorV11(Other.DescriptorV11);
+      break;
+    case llvm::dxbc::RootParameterType::DescriptorTable:
+      new (&DescriptorTable) struct DescriptorTable(Other.DescriptorTable);
+      break;
+    default:
+      llvm_unreachable("Invalid Root parameter type");
+    }
+  }
+
+  RootParameter &operator=(const RootParameter &Other) {
+    if (this != &Other) {
+      this->~RootParameter();
+      new (this) RootParameter(Other);
+    }
+    return *this;
+  }
+
+  RootParameter(RootParameter &&Other) noexcept
+      : Type(Other.Type), Header(std::move(Other.Header)) {
+    switch (Type) {
+    case dxbc::RootParameterType::Constants32Bit:
+      new (&Constants) dxbc::RootConstants(std::move(Other.Constants));
+      break;
+    case dxbc::RootParameterType::CBV:
+    case dxbc::RootParameterType::SRV:
+    case dxbc::RootParameterType::UAV:
+      if (Version == 1)
+        new (&DescriptorV10)
+            dxbc::RootDescriptorV10(std::move(Other.DescriptorV10));
+      else if (Version == 2)
+        new (&DescriptorV11)
+            dxbc::RootDescriptorV11(std::move(Other.DescriptorV11));
+      break;
+    case llvm::dxbc::RootParameterType::DescriptorTable:
+      new (&DescriptorTable) struct DescriptorTable(
+          std::move(Other.DescriptorTable));
+      break;
+    default:
+      llvm_unreachable("Invalid Root parameter type");
+    }
+  }
+
+  RootParameter &operator=(RootParameter &&Other) noexcept {
+    if (this != &Other) {
+      this->~RootParameter();
+      new (this) RootParameter(std::move(Other));
+    }
+    return *this;
+  }
 };
 class RootSignature {
 private:

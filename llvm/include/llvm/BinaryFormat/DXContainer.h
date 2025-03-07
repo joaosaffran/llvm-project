@@ -182,6 +182,8 @@ enum class DescriptorRangeType : uint32_t {
 #include "DXContainerConstants.def"
 };
 
+ArrayRef<EnumEntry<DescriptorRangeType>> getDescriptorRangeTypes();
+
 #define DESCRIPTOR_RANGE_FLAG(Num, Val) Val = 1ull << Num,
 enum class DescriptorRangeFlag : uint32_t {
 #include "DXContainerConstants.def"
@@ -582,6 +584,14 @@ struct DescriptorRangeV10 {
   uint32_t BaseShaderRegister;
   uint32_t RegisterSpace;
   uint32_t OffsetInDescriptorsFromTableStart;
+
+  void swapBytes() {
+    sys::swapByteOrder(RangeType);
+    sys::swapByteOrder(NumDescriptors);
+    sys::swapByteOrder(BaseShaderRegister);
+    sys::swapByteOrder(RegisterSpace);
+    sys::swapByteOrder(OffsetInDescriptorsFromTableStart);
+  }
 };
 
 struct DescriptorRangeV11 {
@@ -591,11 +601,25 @@ struct DescriptorRangeV11 {
   uint32_t RegisterSpace;
   uint32_t OffsetInDescriptorsFromTableStart;
   uint32_t Flags;
+
+  void swapBytes() {
+    sys::swapByteOrder(RangeType);
+    sys::swapByteOrder(NumDescriptors);
+    sys::swapByteOrder(BaseShaderRegister);
+    sys::swapByteOrder(RegisterSpace);
+    sys::swapByteOrder(OffsetInDescriptorsFromTableStart);
+    sys::swapByteOrder(Flags);
+  }
 };
 
 struct RootDescriptorTable {
   uint32_t NumDescriptorRanges;
   uint32_t DescriptorRangesOffset;
+
+  void swapBytes() {
+    sys::swapByteOrder(NumDescriptorRanges);
+    sys::swapByteOrder(DescriptorRangesOffset);
+  }
 };
 
 // Version 1.0 Root Descriptor

@@ -35,21 +35,22 @@ static bool parseRootDescriptor(LLVMContext *Ctx,
   if (RootDescNode->getNumOperands() != 5)
     return reportError(Ctx, "Invalid format for Root descriptor element");
 
+  dxbc::RootParameterHeader Header;
+
   StringRef DescType =
       cast<llvm::MDString>(RootDescNode->getOperand(0))->getString();
-
-  mcdxbc::RootParameter NewParam;
-  NewParam.Header.ParameterType =
-      StringSwitch<dxbc::RootParameterType>(DescType)
-          .Case("RootCBV", dxbc::RootParameterType::CBV)
-          .Case("RootSRV", dxbc::RootParameterType::SRV)
-          .Case("RootUAV", dxbc::RootParameterType::UAV)
-          .Default(dxbc::RootParameterType::Empty);
+  Header.ParameterType = StringSwitch<dxbc::RootParameterType>(DescType)
+                             .Case("RootCBV", dxbc::RootParameterType::CBV)
+                             .Case("RootSRV", dxbc::RootParameterType::SRV)
+                             .Case("RootUAV", dxbc::RootParameterType::UAV)
+                             .Default(dxbc::RootParameterType::Empty);
 
   auto *ShaderVisibility =
       mdconst::extract<ConstantInt>(RootDescNode->getOperand(1));
-  NewParam.Header.ShaderVisibility =
+  Header.ShaderVisibility =
       (dxbc::ShaderVisibility)ShaderVisibility->getZExtValue();
+
+  mcdxbc::RootParameter NewParam(RSD.Header.Version, Header);
 
   // ToDo: Versioning is yet to be supported in the metadata representation.
   auto *ShaderRegister =
@@ -74,14 +75,15 @@ static bool parseRootConstants(LLVMContext *Ctx, mcdxbc::RootSignatureDesc &RSD,
   if (RootConstNode->getNumOperands() != 5)
     return reportError(Ctx, "Invalid format for Root constants element");
 
-  mcdxbc::RootParameter NewParam;
-  NewParam.Header.ParameterType = dxbc::RootParameterType::Constants32Bit;
+  dxbc::RootParameterHeader Header;
+  Header.ParameterType = dxbc::RootParameterType::Constants32Bit;
 
   auto *ShaderVisibility =
       mdconst::extract<ConstantInt>(RootConstNode->getOperand(1));
-  NewParam.Header.ShaderVisibility =
+  Header.ShaderVisibility =
       (dxbc::ShaderVisibility)ShaderVisibility->getZExtValue();
 
+  mcdxbc::RootParameter NewParam(RSD.Header.Version, Header);
   auto *ShaderRegister =
       mdconst::extract<ConstantInt>(RootConstNode->getOperand(2));
   NewParam.Constants.ShaderRegister = ShaderRegister->getZExtValue();

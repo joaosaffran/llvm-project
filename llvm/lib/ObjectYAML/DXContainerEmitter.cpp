@@ -270,9 +270,10 @@ void DXContainerWriter::writeParts(raw_ostream &OS) {
       RS.Header.Flags = P.RootSignature->getEncodedFlags();
       RS.Header.Version = P.RootSignature->Version;
       for (const auto &Param : P.RootSignature->Parameters) {
-        mcdxbc::RootParameter NewParam;
-        NewParam.Header = dxbc::RootParameterHeader{
+        auto ParamHeader = dxbc::RootParameterHeader{
             Param.Type, Param.Visibility, Param.Offset};
+
+        mcdxbc::RootParameter NewParam(RS.Header.Version, ParamHeader);
 
         switch (Param.Type) {
 
@@ -300,6 +301,28 @@ void DXContainerWriter::writeParts(raw_ostream &OS) {
                 Param.Descriptor.RegisterSpace;
           }
         } break;
+        case dxbc::RootParameterType::DescriptorTable:
+          for (const auto &R : Param.Table.Ranges) {
+            mcdxbc::DescriptorTable Table;
+            if (RS.Header.Version == 1) {
+              Table.RangesV10.NumDescriptors = R.NumDescriptors;
+              Table.RangesV10.OffsetInDescriptorsFromTableStart =
+                  R.OffsetInDescriptorsFromTableStart;
+              Table.RangesV10.BaseShaderRegister = R.BaseShaderRegister;
+              Table.RangesV10.RegisterSpace = R.RegisterSpace;
+              Table.RangesV10.RangeType = R.RangeType;
+            } else if (RS.Header.Version == 2) {
+              Table.RangesV11.NumDescriptors = R.NumDescriptors;
+              Table.RangesV11.OffsetInDescriptorsFromTableStart =
+                  R.OffsetInDescriptorsFromTableStart;
+              Table.RangesV11.BaseShaderRegister = R.BaseShaderRegister;
+              Table.RangesV11.RegisterSpace = R.RegisterSpace;
+              Table.RangesV11.RangeType = R.RangeType;
+              Table.RangesV11.Flags = R.Flags;
+            }
+            NewParam.DescriptorTable.push_back(Table);
+          }
+          break;
         }
 
         RS.Parameters.push_back(NewParam);
