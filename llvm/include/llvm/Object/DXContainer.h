@@ -180,21 +180,21 @@ struct RootParameter {
 
   // Copy constructor
   RootParameter(const RootParameter &Other)
-      : Type(Other.Header.ParameterType), Header(Other.Header) {
+      : Type(Other.Header.ParameterType), Version(Other.Version), Header(Other.Header) {
     switch (Header.ParameterType) {
     case dxbc::RootParameterType::Constants32Bit:
-      new (&Constants) dxbc::RootConstants(Other.Constants);
+      Constants = dxbc::RootConstants(Other.Constants);
       break;
     case dxbc::RootParameterType::CBV:
     case dxbc::RootParameterType::SRV:
     case dxbc::RootParameterType::UAV:
       if (Version == 1)
-        new (&DescriptorV10) dxbc::RootDescriptorV10(Other.DescriptorV10);
+        DescriptorV10 = dxbc::RootDescriptorV10(Other.DescriptorV10);
       else if (Version == 2)
-        new (&DescriptorV11) dxbc::RootDescriptorV11(Other.DescriptorV11);
+        DescriptorV11 = dxbc::RootDescriptorV11(Other.DescriptorV11);
       break;
     case llvm::dxbc::RootParameterType::DescriptorTable:
-      new (&DescriptorTable) struct DescriptorTable(Other.DescriptorTable);
+      DescriptorTable = DirectX::DescriptorTable(Other.DescriptorTable);
       break;
     default:
       llvm_unreachable("Invalid Root parameter type");
@@ -210,7 +210,7 @@ struct RootParameter {
   }
 
   RootParameter(RootParameter &&Other) noexcept
-      : Type(Other.Type), Header(std::move(Other.Header)) {
+      : Type(Other.Type), Version(Other.Version), Header(std::move(Other.Header)) {
     switch (Type) {
     case dxbc::RootParameterType::Constants32Bit:
       new (&Constants) dxbc::RootConstants(std::move(Other.Constants));
