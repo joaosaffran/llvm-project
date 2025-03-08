@@ -270,10 +270,8 @@ void DXContainerWriter::writeParts(raw_ostream &OS) {
       RS.Header.Flags = P.RootSignature->getEncodedFlags();
       RS.Header.Version = P.RootSignature->Version;
       for (const auto &Param : P.RootSignature->Parameters) {
-        auto ParamHeader = dxbc::RootParameterHeader{
-            Param.Type, Param.Visibility, Param.Offset};
-
-        mcdxbc::RootParameter NewParam(RS.Header.Version, ParamHeader);
+        mcdxbc::RootParameter NewParam(RS.Header.Version, Param.Type,
+                                       Param.Visibility);
 
         switch (Param.Type) {
 

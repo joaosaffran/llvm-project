@@ -50,10 +50,8 @@ void RootSignatureDesc::write(raw_ostream &OS) const {
 
   SmallVector<uint32_t> ParamsOffsets;
   for (const auto &P : Parameters) {
-    support::endian::write(BOS, P.Header.ParameterType,
-                           llvm::endianness::little);
-    support::endian::write(BOS, P.Header.ShaderVisibility,
-                           llvm::endianness::little);
+    support::endian::write(BOS, P.ParameterType, llvm::endianness::little);
+    support::endian::write(BOS, P.ShaderVisibility, llvm::endianness::little);
 
     ParamsOffsets.push_back(writePlaceholder(BOS));
   }
@@ -63,7 +61,7 @@ void RootSignatureDesc::write(raw_ostream &OS) const {
     rewriteOffset(BOS, ParamsOffsets[I]);
     const auto &P = Parameters[I];
 
-    switch (P.Header.ParameterType) {
+    switch (P.ParameterType) {
     case dxbc::RootParameterType::Constants32Bit: {
       support::endian::write(BOS, P.Constants.ShaderRegister,
                              llvm::endianness::little);

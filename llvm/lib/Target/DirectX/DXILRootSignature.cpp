@@ -35,22 +35,20 @@ static bool parseRootDescriptor(LLVMContext *Ctx,
   if (RootDescNode->getNumOperands() != 5)
     return reportError(Ctx, "Invalid format for Root descriptor element");
 
-  dxbc::RootParameterHeader Header;
-
   StringRef DescType =
       cast<llvm::MDString>(RootDescNode->getOperand(0))->getString();
-  Header.ParameterType = StringSwitch<dxbc::RootParameterType>(DescType)
-                             .Case("RootCBV", dxbc::RootParameterType::CBV)
-                             .Case("RootSRV", dxbc::RootParameterType::SRV)
-                             .Case("RootUAV", dxbc::RootParameterType::UAV)
-                             .Default(dxbc::RootParameterType::Empty);
+  auto ParameterType = StringSwitch<dxbc::RootParameterType>(DescType)
+                           .Case("RootCBV", dxbc::RootParameterType::CBV)
+                           .Case("RootSRV", dxbc::RootParameterType::SRV)
+                           .Case("RootUAV", dxbc::RootParameterType::UAV)
+                           .Default(dxbc::RootParameterType::Empty);
 
-  auto *ShaderVisibility =
-      mdconst::extract<ConstantInt>(RootDescNode->getOperand(1));
-  Header.ShaderVisibility =
-      (dxbc::ShaderVisibility)ShaderVisibility->getZExtValue();
+  auto ShaderVisibility =
+      mdconst::extract<ConstantInt>(RootDescNode->getOperand(1))
+          ->getZExtValue();
 
-  mcdxbc::RootParameter NewParam(RSD.Header.Version, Header);
+  mcdxbc::RootParameter NewParam(RSD.Header.Version, ParameterType,
+                                 (dxbc::ShaderVisibility)ShaderVisibility);
 
   // ToDo: Versioning is yet to be supported in the metadata representation.
   auto *ShaderRegister =
@@ -75,15 +73,13 @@ static bool parseRootConstants(LLVMContext *Ctx, mcdxbc::RootSignatureDesc &RSD,
   if (RootConstNode->getNumOperands() != 5)
     return reportError(Ctx, "Invalid format for Root constants element");
 
-  dxbc::RootParameterHeader Header;
-  Header.ParameterType = dxbc::RootParameterType::Constants32Bit;
+  auto ShaderVisibility =
+      mdconst::extract<ConstantInt>(RootConstNode->getOperand(1))
+          ->getZExtValue();
 
-  auto *ShaderVisibility =
-      mdconst::extract<ConstantInt>(RootConstNode->getOperand(1));
-  Header.ShaderVisibility =
-      (dxbc::ShaderVisibility)ShaderVisibility->getZExtValue();
-
-  mcdxbc::RootParameter NewParam(RSD.Header.Version, Header);
+  mcdxbc::RootParameter NewParam(RSD.Header.Version,
+                                 dxbc::RootParameterType::Constants32Bit,
+                                 (dxbc::ShaderVisibility)ShaderVisibility);
   auto *ShaderRegister =
       mdconst::extract<ConstantInt>(RootConstNode->getOperand(2));
   NewParam.Constants.ShaderRegister = ShaderRegister->getZExtValue();
@@ -170,18 +166,18 @@ static bool validate(LLVMContext *Ctx, const mcdxbc::RootSignatureDesc &RSD) {
 
   for (const auto &P : RSD.Parameters) {
     // Parameter Type cannot be set through metadata.
-    assert(dxbc::RootSignatureValidations::isValidParameterType(
-        P.Header.ParameterType));
+    assert(
+        dxbc::RootSignatureValidations::isValidParameterType(P.ParameterType));
 
     if (!dxbc::RootSignatureValidations::isValidShaderVisibility(
-            P.Header.ShaderVisibility)) {
+            P.ShaderVisibility)) {
       return reportError(
           Ctx,
           "Invalid Root Signature parameter shader visibility in metadata " +
-              Twine((uint32_t)P.Header.ShaderVisibility));
+              Twine((uint32_t)P.ShaderVisibility));
     }
 
-    switch (P.Header.ParameterType) {
+    switch (P.ParameterType) {
 
     case dxbc::RootParameterType::CBV:
     case dxbc::RootParameterType::SRV:
@@ -330,14 +326,12 @@ PreservedAnalyses RootSignatureAnalysisPrinter::run(Module &M,
     OS << indent(Space) << "- Parameters: \n";
     Space++;
     for (const auto &P : RS.Parameters) {
-      OS << indent(Space) << "Type: " << (uint32_t)P.Header.ParameterType
-         << " \n";
+      OS << indent(Space) << "Type: " << (uint32_t)P.ParameterType << " \n";
       OS << indent(Space)
-         << "ShaderVisibility: " << (uint32_t)P.Header.ShaderVisibility
-         << " \n";
+         << "ShaderVisibility: " << (uint32_t)P.ShaderVisibility << " \n";
       Space++;
 
-      switch (P.Header.ParameterType) {
+      switch (P.ParameterType) {
 
       case dxbc::RootParameterType::Constants32Bit: {
         OS << indent(Space) << "- Constants: \n";
@@ -356,8 +350,7 @@ PreservedAnalyses RootSignatureAnalysisPrinter::run(Module &M,
         OS << indent(Space) << "- Descriptor: \n";
         Space++;
         if (RS.Header.Version == 1) {
-          OS << indent(Space) << "Type: " << (uint32_t)P.Header.ParameterType
-             << " \n";
+          OS << indent(Space) << "Type: " << (uint32_t)P.ParameterType << " \n";
           OS << indent(Space)
              << "ShaderSpace: " << P.DescriptorV10.RegisterSpace << " \n";
           OS << indent(Space)

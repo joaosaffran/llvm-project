@@ -9,6 +9,7 @@
 #include "llvm/BinaryFormat/DXContainer.h"
 #include "llvm/Support/raw_ostream.h"
 #include <cstdint>
+#include <utility>
 
 namespace llvm {
 
@@ -21,7 +22,8 @@ union DescriptorTable {
 };
 
 struct RootParameter {
-  dxbc::RootParameterHeader Header;
+  dxbc::RootParameterType ParameterType;
+  dxbc::ShaderVisibility ShaderVisibility;
   uint32_t Version;
   union {
     dxbc::RootConstants Constants;
@@ -30,12 +32,13 @@ struct RootParameter {
     SmallVector<DescriptorTable> DescriptorTable;
   };
 
-  RootParameter(uint32_t Version, dxbc::RootParameterHeader Header)
-      : Header(Header), Version(Version) {}
+  RootParameter(uint32_t Version, dxbc::RootParameterType Type,
+                dxbc::ShaderVisibility Visibility)
+      : ParameterType(Type), ShaderVisibility(Visibility), Version(Version) {}
 
   // Destructor that properly cleans up the active union member
   ~RootParameter() {
-    switch (Header.ParameterType) {
+    switch (ParameterType) {
     case dxbc::RootParameterType::Constants32Bit:
       Constants.~RootConstants();
       break;
@@ -58,18 +61,19 @@ struct RootParameter {
 
   // Copy constructor
   RootParameter(const RootParameter &Other)
-      : Header(Other.Header), Version(Other.Version) {
-    switch (Header.ParameterType) {
+      : ParameterType(Other.ParameterType),
+        ShaderVisibility(Other.ShaderVisibility), Version(Other.Version) {
+    switch (ParameterType) {
     case dxbc::RootParameterType::Constants32Bit:
-      new (&Constants) dxbc::RootConstants(Other.Constants);
+      Constants = dxbc::RootConstants(Other.Constants);
       break;
     case dxbc::RootParameterType::CBV:
     case dxbc::RootParameterType::SRV:
     case dxbc::RootParameterType::UAV:
       if (Version == 1)
-        new (&DescriptorV10) dxbc::RootDescriptorV10(Other.DescriptorV10);
+        DescriptorV10 = dxbc::RootDescriptorV10(Other.DescriptorV10);
       else if (Version == 2)
-        new (&DescriptorV11) dxbc::RootDescriptorV11(Other.DescriptorV11);
+        DescriptorV11 = dxbc::RootDescriptorV11(Other.DescriptorV11);
       break;
     case llvm::dxbc::RootParameterType::DescriptorTable:
       DescriptorTable = Other.DescriptorTable;
@@ -88,20 +92,20 @@ struct RootParameter {
   }
 
   RootParameter(RootParameter &&Other) noexcept
-      : Header(std::move(Other.Header)), Version(std::move(Other.Version)) {
-    switch (Header.ParameterType) {
+      : ParameterType(std::move(Other.ParameterType)),
+        ShaderVisibility(std::move(Other.ShaderVisibility)),
+        Version(std::move(Other.Version)) {
+    switch (ParameterType) {
     case dxbc::RootParameterType::Constants32Bit:
-      new (&Constants) dxbc::RootConstants(std::move(Other.Constants));
+      Constants = dxbc::RootConstants(std::move(Other.Constants));
       break;
     case dxbc::RootParameterType::CBV:
     case dxbc::RootParameterType::SRV:
     case dxbc::RootParameterType::UAV:
       if (Version == 1)
-        new (&DescriptorV10)
-            dxbc::RootDescriptorV10(std::move(Other.DescriptorV10));
+        DescriptorV10 = dxbc::RootDescriptorV10(std::move(Other.DescriptorV10));
       else if (Version == 2)
-        new (&DescriptorV11)
-            dxbc::RootDescriptorV11(std::move(Other.DescriptorV11));
+        DescriptorV11 = dxbc::RootDescriptorV11(std::move(Other.DescriptorV11));
       break;
     case llvm::dxbc::RootParameterType::DescriptorTable:
       DescriptorTable = std::move(Other.DescriptorTable);

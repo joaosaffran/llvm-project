@@ -130,8 +130,9 @@ struct RootParameterYamlDesc {
 
   RootParameterYamlDesc(){};
 
-  RootParameterYamlDesc(dxbc::RootParameterType Type, uint32_t Version)
-      : Version(Version), Type(Type) {}
+  RootParameterYamlDesc(uint32_t Version, dxbc::RootParameterType Type,
+                        dxbc::ShaderVisibility Visibility)
+      : Version(Version), Type(Type), Visibility(Visibility) {}
 
   RootParameterYamlDesc(uint32_t Version,
                         object::DirectX::RootParameter *Parameter)
@@ -223,18 +224,18 @@ struct RootParameterYamlDesc {
 
   // Copy constructor
   RootParameterYamlDesc(const RootParameterYamlDesc &Other)
-      : Version(Other.Version), Type(Other.Type) {
+      : Version(Other.Version), Type(Other.Type), Visibility(Other.Visibility) {
     switch (Type) {
     case dxbc::RootParameterType::Constants32Bit:
-      new (&Constants) RootConstantsYaml(Other.Constants);
+      Constants = RootConstantsYaml(Other.Constants);
       break;
     case dxbc::RootParameterType::CBV:
     case dxbc::RootParameterType::SRV:
     case dxbc::RootParameterType::UAV:
-      new (&Descriptor) RootDescriptorYaml(Other.Descriptor);
+      Descriptor = RootDescriptorYaml(Other.Descriptor);
       break;
     case llvm::dxbc::RootParameterType::DescriptorTable:
-      new (&Table) DescriptorTableYaml(Other.Table);
+      Table = DescriptorTableYaml(Other.Table);
       break;
     default:
       llvm_unreachable("Invalid Root parameter type");
@@ -250,18 +251,19 @@ struct RootParameterYamlDesc {
   }
 
   RootParameterYamlDesc(RootParameterYamlDesc &&Other) noexcept
-      : Version(Other.Version), Type(Other.Type) {
+      : Version(std::move(Other.Version)), Type(std::move(Other.Type)),
+        Visibility(std::move(Other.Visibility)) {
     switch (Type) {
     case dxbc::RootParameterType::Constants32Bit:
-      new (&Constants) RootConstantsYaml(std::move(Other.Constants));
+      Constants = RootConstantsYaml(std::move(Other.Constants));
       break;
     case dxbc::RootParameterType::CBV:
     case dxbc::RootParameterType::SRV:
     case dxbc::RootParameterType::UAV:
-      new (&Descriptor) RootDescriptorYaml(std::move(Other.Descriptor));
+      Descriptor = RootDescriptorYaml(std::move(Other.Descriptor));
       break;
     case llvm::dxbc::RootParameterType::DescriptorTable:
-      new (&Table) DescriptorTableYaml(std::move(Other.Table));
+      Table = DescriptorTableYaml(std::move(Other.Table));
       break;
     default:
       llvm_unreachable("Invalid Root parameter type");
