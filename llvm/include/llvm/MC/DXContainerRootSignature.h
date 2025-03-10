@@ -13,6 +13,7 @@ namespace llvm {
 
 class raw_ostream;
 namespace mcdxbc {
+
 struct RootParameter {
   dxbc::RootParameterHeader Header;
   uint32_t Version;

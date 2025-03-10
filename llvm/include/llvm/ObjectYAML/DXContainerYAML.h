@@ -88,37 +88,30 @@ struct RootDescriptorYaml {
 };
 
 struct RootParameterYamlDesc {
-  uint32_t Version;
   dxbc::RootParameterType Type;
   dxbc::ShaderVisibility Visibility;
   uint32_t Offset;
-
-  union {
-    RootConstantsYaml Constants;
-    RootDescriptorYaml Descriptor;
-  };
 
   RootParameterYamlDesc(){};
 
   RootParameterYamlDesc(uint32_t Version, dxbc::RootParameterType Type,
                         dxbc::ShaderVisibility Visibility)
-      : Version(Version), Type(Type), Visibility(Visibility) {}
+      : Type(Type), Visibility(Visibility) {}
 
   RootParameterYamlDesc(uint32_t Version,
-                        object::DirectX::RootParameter *Parameter)
-      : Version(Version) {
+                        object::DirectX::RootParameter *Parameter) {
     assert(dxbc::RootSignatureValidations::isValidVersion(Version));
 
     Type = Parameter->Header.ParameterType;
     Visibility = Parameter->Header.ShaderVisibility;
     Offset = Parameter->Header.ParameterOffset;
-
     switch (Parameter->Header.ParameterType) {
     case dxbc::RootParameterType::Constants32Bit: {
       Constants.Num32BitValues = Parameter->Constants.Num32BitValues;
       Constants.RegisterSpace = Parameter->Constants.RegisterSpace;
       Constants.ShaderRegister = Parameter->Constants.ShaderRegister;
     } break;
+
     case dxbc::RootParameterType::CBV:
     case dxbc::RootParameterType::SRV:
     case dxbc::RootParameterType::UAV: {
@@ -131,12 +124,17 @@ struct RootParameterYamlDesc {
         Descriptor.RegisterSpace = Parameter->DescriptorV11.RegisterSpace;
       }
     } break;
+
     case dxbc::RootParameterType::Empty:
       llvm_unreachable("Invalid Root Parameter Type. It should be verified "
                        "before reaching here.");
       break;
     }
   }
+  union {
+    RootConstantsYaml Constants;
+    RootDescriptorYaml Descriptor;
+  };
 
   // Destructor that properly cleans up the active union member
   ~RootParameterYamlDesc() {
@@ -156,7 +154,7 @@ struct RootParameterYamlDesc {
 
   // Copy constructor
   RootParameterYamlDesc(const RootParameterYamlDesc &Other)
-      : Version(Other.Version), Type(Other.Type), Visibility(Other.Visibility) {
+      : Type(Other.Type), Visibility(Other.Visibility) {
     switch (Type) {
     case dxbc::RootParameterType::Constants32Bit:
       new (&Constants) RootConstantsYaml(Other.Constants);
@@ -180,8 +178,7 @@ struct RootParameterYamlDesc {
   }
 
   RootParameterYamlDesc(RootParameterYamlDesc &&Other) noexcept
-      : Version(std::move(Other.Version)), Type(std::move(Other.Type)),
-        Visibility(std::move(Other.Visibility)) {
+      : Type(std::move(Other.Type)), Visibility(std::move(Other.Visibility)) {
     switch (Type) {
     case dxbc::RootParameterType::Constants32Bit:
       new (&Constants) RootConstantsYaml(std::move(Other.Constants));
