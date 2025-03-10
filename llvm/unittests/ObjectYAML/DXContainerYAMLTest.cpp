@@ -15,7 +15,6 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Testing/Support/Error.h"
 #include "gtest/gtest.h"
-#include <cstddef>
 
 using namespace llvm;
 using namespace llvm::object;

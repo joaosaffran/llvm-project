@@ -8,8 +8,6 @@
 
 #include "llvm/BinaryFormat/DXContainer.h"
 #include "llvm/Support/raw_ostream.h"
-#include <cstdint>
-#include <utility>
 
 namespace llvm {
 

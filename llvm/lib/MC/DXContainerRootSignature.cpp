@@ -8,10 +8,7 @@
 
 #include "llvm/MC/DXContainerRootSignature.h"
 #include "llvm/ADT/SmallString.h"
-#include "llvm/BinaryFormat/DXContainer.h"
 #include "llvm/Support/EndianStream.h"
-#include <cstddef>
-#include <cstdint>
 
 using namespace llvm;
 using namespace llvm::mcdxbc;
