@@ -25,7 +25,7 @@ attributes #0 = { "hlsl.numthreads"="1,1,1" "hlsl.shader"="compute" }
 ; DXC-NEXT:  NumParameters: 1:
 ; DXC-NEXT:  RootParametersOffset: 24:
 ; DXC-NEXT:  NumStaticSamplers: 0:
-; DXC-NEXT:  StaticSamplersOffset: 48:
+; DXC-NEXT:  StaticSamplersOffset: 52:
 ; DXC-NEXT:  - Parameters: 
 ; DXC-NEXT:   Type: 1 
 ; DXC-NEXT:   ShaderVisibility: 0 

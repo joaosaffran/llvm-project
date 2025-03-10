@@ -166,18 +166,18 @@ static bool validate(LLVMContext *Ctx, const mcdxbc::RootSignatureDesc &RSD) {
 
   for (const auto &P : RSD.Parameters) {
     // Parameter Type cannot be set through metadata.
-    assert(
-        dxbc::RootSignatureValidations::isValidParameterType(P.ParameterType));
+    assert(dxbc::RootSignatureValidations::isValidParameterType(
+        P.Header.ParameterType));
 
     if (!dxbc::RootSignatureValidations::isValidShaderVisibility(
-            P.ShaderVisibility)) {
+            P.Header.ShaderVisibility)) {
       return reportError(
           Ctx,
           "Invalid Root Signature parameter shader visibility in metadata " +
-              Twine((uint32_t)P.ShaderVisibility));
+              Twine((uint32_t)P.Header.ShaderVisibility));
     }
 
-    switch (P.ParameterType) {
+    switch (P.Header.ParameterType) {
 
     case dxbc::RootParameterType::CBV:
     case dxbc::RootParameterType::SRV:
@@ -326,12 +326,14 @@ PreservedAnalyses RootSignatureAnalysisPrinter::run(Module &M,
     OS << indent(Space) << "- Parameters: \n";
     Space++;
     for (const auto &P : RS.Parameters) {
-      OS << indent(Space) << "Type: " << (uint32_t)P.ParameterType << " \n";
+      OS << indent(Space) << "Type: " << (uint32_t)P.Header.ParameterType
+         << " \n";
       OS << indent(Space)
-         << "ShaderVisibility: " << (uint32_t)P.ShaderVisibility << " \n";
+         << "ShaderVisibility: " << (uint32_t)P.Header.ShaderVisibility
+         << " \n";
       Space++;
 
-      switch (P.ParameterType) {
+      switch (P.Header.ParameterType) {
 
       case dxbc::RootParameterType::Constants32Bit: {
         OS << indent(Space) << "- Constants: \n";
@@ -350,7 +352,8 @@ PreservedAnalyses RootSignatureAnalysisPrinter::run(Module &M,
         OS << indent(Space) << "- Descriptor: \n";
         Space++;
         if (RS.Header.Version == 1) {
-          OS << indent(Space) << "Type: " << (uint32_t)P.ParameterType << " \n";
+          OS << indent(Space) << "Type: " << (uint32_t)P.Header.ParameterType
+             << " \n";
           OS << indent(Space)
              << "ShaderSpace: " << P.DescriptorV10.RegisterSpace << " \n";
           OS << indent(Space)

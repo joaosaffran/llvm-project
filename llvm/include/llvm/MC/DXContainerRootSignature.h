@@ -14,8 +14,7 @@ namespace llvm {
 class raw_ostream;
 namespace mcdxbc {
 struct RootParameter {
-  dxbc::RootParameterType ParameterType;
-  dxbc::ShaderVisibility ShaderVisibility;
+  dxbc::RootParameterHeader Header;
   uint32_t Version;
   union {
     dxbc::RootConstants Constants;
@@ -25,11 +24,12 @@ struct RootParameter {
 
   RootParameter(uint32_t Version, dxbc::RootParameterType Type,
                 dxbc::ShaderVisibility Visibility)
-      : ParameterType(Type), ShaderVisibility(Visibility), Version(Version) {}
+      : Header(dxbc::RootParameterHeader{Type, Visibility, 0}),
+        Version(Version) {}
 
   // Destructor that properly cleans up the active union member
   ~RootParameter() {
-    switch (ParameterType) {
+    switch (Header.ParameterType) {
     case dxbc::RootParameterType::Constants32Bit:
       Constants.~RootConstants();
       break;
@@ -48,9 +48,8 @@ struct RootParameter {
 
   // Copy constructor
   RootParameter(const RootParameter &Other)
-      : ParameterType(Other.ParameterType),
-        ShaderVisibility(Other.ShaderVisibility), Version(Other.Version) {
-    switch (ParameterType) {
+      : Header(Other.Header), Version(Other.Version) {
+    switch (Header.ParameterType) {
     case dxbc::RootParameterType::Constants32Bit:
       new (&Constants) dxbc::RootConstants(Other.Constants);
       break;
@@ -76,10 +75,8 @@ struct RootParameter {
   }
 
   RootParameter(RootParameter &&Other) noexcept
-      : ParameterType(std::move(Other.ParameterType)),
-        ShaderVisibility(std::move(Other.ShaderVisibility)),
-        Version(std::move(Other.Version)) {
-    switch (ParameterType) {
+      : Header(std::move(Other.Header)), Version(std::move(Other.Version)) {
+    switch (Header.ParameterType) {
     case dxbc::RootParameterType::Constants32Bit:
       new (&Constants) dxbc::RootConstants(std::move(Other.Constants));
       break;
