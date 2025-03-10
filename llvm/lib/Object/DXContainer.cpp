@@ -346,27 +346,6 @@ Error DirectX::RootSignature::parse(StringRef Data) {
               llvm::Twine(NewParam.DescriptorV11.RegisterSpace));
       }
     } break;
-    case llvm::dxbc::RootParameterType::DescriptorTable: {
-      if (Error Err = readStruct(Data, Begin + NewParam.Header.ParameterOffset,
-                                 NewParam.DescriptorTable.Header))
-        return Err;
-
-      for (size_t I = 0;
-           I < NewParam.DescriptorTable.Header.NumDescriptorRanges; I++) {
-        if (Version == 1) {
-          dxbc::DescriptorRangeV10 NewRange;
-          if (Error Err = readStruct(Data, Current, NewRange))
-            return Err;
-          NewParam.DescriptorTable.Ranges.push_back(NewRange);
-        } else if (Version == 2) {
-          dxbc::DescriptorRangeV11 NewRange;
-          if (Error Err = readStruct(Data, Current, NewRange))
-            return Err;
-          NewParam.DescriptorTable.Ranges.push_back(NewRange);
-        }
-      }
-
-    } break;
     case dxbc::RootParameterType::Empty:
       // unreachable  because it was validated and assigned before this point.
       llvm_unreachable("Invalid value for RootParameterType");

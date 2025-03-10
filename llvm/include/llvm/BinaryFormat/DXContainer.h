@@ -177,18 +177,6 @@ enum class RootDescriptorFlag : uint32_t {
 #include "DXContainerConstants.def"
 };
 
-#define DESCRIPTOR_RANGE_TYPE(Val, Enum) Enum = Val,
-enum class DescriptorRangeType : uint32_t {
-#include "DXContainerConstants.def"
-};
-
-ArrayRef<EnumEntry<DescriptorRangeType>> getDescriptorRangeTypes();
-
-#define DESCRIPTOR_RANGE_FLAG(Num, Val) Val = 1ull << Num,
-enum class DescriptorRangeFlag : uint32_t {
-#include "DXContainerConstants.def"
-};
-
 PartType parsePartType(StringRef S);
 
 struct VertexPSVInfo {
@@ -577,50 +565,6 @@ struct ProgramSignatureElement {
 
 static_assert(sizeof(ProgramSignatureElement) == 32,
               "ProgramSignatureElement is misaligned");
-
-struct DescriptorRangeV10 {
-  dxbc::DescriptorRangeType RangeType;
-  uint32_t NumDescriptors;
-  uint32_t BaseShaderRegister;
-  uint32_t RegisterSpace;
-  uint32_t OffsetInDescriptorsFromTableStart;
-
-  void swapBytes() {
-    sys::swapByteOrder(RangeType);
-    sys::swapByteOrder(NumDescriptors);
-    sys::swapByteOrder(BaseShaderRegister);
-    sys::swapByteOrder(RegisterSpace);
-    sys::swapByteOrder(OffsetInDescriptorsFromTableStart);
-  }
-};
-
-struct DescriptorRangeV11 {
-  dxbc::DescriptorRangeType RangeType;
-  uint32_t NumDescriptors;
-  uint32_t BaseShaderRegister;
-  uint32_t RegisterSpace;
-  uint32_t OffsetInDescriptorsFromTableStart;
-  uint32_t Flags;
-
-  void swapBytes() {
-    sys::swapByteOrder(RangeType);
-    sys::swapByteOrder(NumDescriptors);
-    sys::swapByteOrder(BaseShaderRegister);
-    sys::swapByteOrder(RegisterSpace);
-    sys::swapByteOrder(OffsetInDescriptorsFromTableStart);
-    sys::swapByteOrder(Flags);
-  }
-};
-
-struct RootDescriptorTable {
-  uint32_t NumDescriptorRanges;
-  uint32_t DescriptorRangesOffset;
-
-  void swapBytes() {
-    sys::swapByteOrder(NumDescriptorRanges);
-    sys::swapByteOrder(DescriptorRangesOffset);
-  }
-};
 
 // Version 1.0 Root Descriptor
 struct RootDescriptorV10 {

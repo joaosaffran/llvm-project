@@ -88,34 +88,6 @@ struct RootDescriptorYaml {
 #include "llvm/BinaryFormat/DXContainerConstants.def"
 };
 
-struct DescriptorRangeYaml {
-  dxbc::DescriptorRangeType RangeType;
-  uint32_t NumDescriptors;
-  uint32_t BaseShaderRegister;
-  uint32_t RegisterSpace;
-  uint32_t OffsetInDescriptorsFromTableStart;
-  uint32_t Flags;
-};
-
-struct DescriptorTableYaml {
-  uint32_t NumDescriptorRanges;
-  uint32_t DescriptorRangesOffset;
-
-  SmallVector<DescriptorRangeYaml> Ranges;
-
-  // Add explicit default constructor and destructor
-  DescriptorTableYaml() = default;
-  ~DescriptorTableYaml() = default;
-
-  // Add copy constructor and assignment operator
-  DescriptorTableYaml(const DescriptorTableYaml &) = default;
-  DescriptorTableYaml &operator=(const DescriptorTableYaml &) = default;
-
-  // Add move constructor and assignment operator
-  DescriptorTableYaml(DescriptorTableYaml &&) = default;
-  DescriptorTableYaml &operator=(DescriptorTableYaml &&) = default;
-};
-
 struct RootParameterYamlDesc {
   uint32_t Version;
   dxbc::RootParameterType Type;
@@ -125,7 +97,6 @@ struct RootParameterYamlDesc {
   union {
     RootConstantsYaml Constants;
     RootDescriptorYaml Descriptor;
-    DescriptorTableYaml Table;
   };
 
   RootParameterYamlDesc(){};
@@ -161,41 +132,6 @@ struct RootParameterYamlDesc {
         Descriptor.RegisterSpace = Parameter->DescriptorV11.RegisterSpace;
       }
     } break;
-    case dxbc::RootParameterType::DescriptorTable: {
-      Table.NumDescriptorRanges =
-          Parameter->DescriptorTable.Header.NumDescriptorRanges;
-      Table.DescriptorRangesOffset =
-          Parameter->DescriptorTable.Header.DescriptorRangesOffset;
-
-      for (const auto &V : Parameter->DescriptorTable.Ranges) {
-        DescriptorRangeYaml NewRange;
-        if (Version == 1) {
-          const dxbc::DescriptorRangeV10 &CurRange =
-              std::get<dxbc::DescriptorRangeV10>(V);
-
-          NewRange.RangeType = CurRange.RangeType;
-          NewRange.NumDescriptors = CurRange.NumDescriptors;
-          NewRange.BaseShaderRegister = CurRange.BaseShaderRegister;
-          NewRange.RegisterSpace = CurRange.RegisterSpace;
-          NewRange.OffsetInDescriptorsFromTableStart =
-              CurRange.OffsetInDescriptorsFromTableStart;
-          NewRange.Flags = 0;
-        } else if (Version == 2) {
-          const dxbc::DescriptorRangeV11 &CurRange =
-              std::get<dxbc::DescriptorRangeV11>(V);
-
-          NewRange.RangeType = CurRange.RangeType;
-          NewRange.NumDescriptors = CurRange.NumDescriptors;
-          NewRange.BaseShaderRegister = CurRange.BaseShaderRegister;
-          NewRange.RegisterSpace = CurRange.RegisterSpace;
-          NewRange.OffsetInDescriptorsFromTableStart =
-              CurRange.OffsetInDescriptorsFromTableStart;
-          NewRange.Flags = CurRange.Flags;
-        }
-        Table.Ranges.push_back(NewRange);
-      }
-
-    } break;
     case dxbc::RootParameterType::Empty:
       llvm_unreachable("Invalid Root Parameter Type. It should be verified "
                        "before reaching here.");
@@ -214,9 +150,6 @@ struct RootParameterYamlDesc {
     case dxbc::RootParameterType::UAV:
       Descriptor.~RootDescriptorYaml();
       break;
-    case llvm::dxbc::RootParameterType::DescriptorTable:
-      Table.~DescriptorTableYaml();
-      break;
     default:
       llvm_unreachable("Invalid Root parameter type");
     }
@@ -227,15 +160,12 @@ struct RootParameterYamlDesc {
       : Version(Other.Version), Type(Other.Type), Visibility(Other.Visibility) {
     switch (Type) {
     case dxbc::RootParameterType::Constants32Bit:
-      Constants = RootConstantsYaml(Other.Constants);
+      new (&Constants) RootConstantsYaml(Other.Constants);
       break;
     case dxbc::RootParameterType::CBV:
     case dxbc::RootParameterType::SRV:
     case dxbc::RootParameterType::UAV:
-      Descriptor = RootDescriptorYaml(Other.Descriptor);
-      break;
-    case llvm::dxbc::RootParameterType::DescriptorTable:
-      Table = DescriptorTableYaml(Other.Table);
+      new (&Descriptor) RootDescriptorYaml(Other.Descriptor);
       break;
     default:
       llvm_unreachable("Invalid Root parameter type");
@@ -255,15 +185,12 @@ struct RootParameterYamlDesc {
         Visibility(std::move(Other.Visibility)) {
     switch (Type) {
     case dxbc::RootParameterType::Constants32Bit:
-      Constants = RootConstantsYaml(std::move(Other.Constants));
+      new (&Constants) RootConstantsYaml(std::move(Other.Constants));
       break;
     case dxbc::RootParameterType::CBV:
     case dxbc::RootParameterType::SRV:
     case dxbc::RootParameterType::UAV:
-      Descriptor = RootDescriptorYaml(std::move(Other.Descriptor));
-      break;
-    case llvm::dxbc::RootParameterType::DescriptorTable:
-      Table = DescriptorTableYaml(std::move(Other.Table));
+      new (&Descriptor) RootDescriptorYaml(std::move(Other.Descriptor));
       break;
     default:
       llvm_unreachable("Invalid Root parameter type");
@@ -398,7 +325,6 @@ LLVM_YAML_IS_SEQUENCE_VECTOR(llvm::DXContainerYAML::SignatureElement)
 LLVM_YAML_IS_SEQUENCE_VECTOR(llvm::DXContainerYAML::PSVInfo::MaskVector)
 LLVM_YAML_IS_SEQUENCE_VECTOR(llvm::DXContainerYAML::SignatureParameter)
 LLVM_YAML_IS_SEQUENCE_VECTOR(llvm::DXContainerYAML::RootParameterYamlDesc)
-LLVM_YAML_IS_SEQUENCE_VECTOR(llvm::DXContainerYAML::DescriptorRangeYaml)
 LLVM_YAML_DECLARE_ENUM_TRAITS(llvm::dxbc::PSV::SemanticKind)
 LLVM_YAML_DECLARE_ENUM_TRAITS(llvm::dxbc::PSV::ComponentType)
 LLVM_YAML_DECLARE_ENUM_TRAITS(llvm::dxbc::PSV::InterpolationMode)
@@ -410,7 +336,6 @@ LLVM_YAML_DECLARE_ENUM_TRAITS(llvm::dxbc::SigMinPrecision)
 LLVM_YAML_DECLARE_ENUM_TRAITS(llvm::dxbc::RootParameterType)
 LLVM_YAML_DECLARE_ENUM_TRAITS(llvm::dxbc::ShaderVisibility)
 LLVM_YAML_DECLARE_ENUM_TRAITS(llvm::dxbc::RootDescriptorFlag)
-LLVM_YAML_DECLARE_ENUM_TRAITS(llvm::dxbc::DescriptorRangeType)
 
 namespace llvm {
 
@@ -479,20 +404,12 @@ template <> struct MappingTraits<llvm::DXContainerYAML::RootParameterYamlDesc> {
   static void mapping(IO &IO, llvm::DXContainerYAML::RootParameterYamlDesc &P);
 };
 
-template <> struct MappingTraits<llvm::DXContainerYAML::DescriptorTableYaml> {
-  static void mapping(IO &IO, llvm::DXContainerYAML::DescriptorTableYaml &P);
-};
-
 template <> struct MappingTraits<llvm::DXContainerYAML::RootConstantsYaml> {
   static void mapping(IO &IO, llvm::DXContainerYAML::RootConstantsYaml &C);
 };
 
 template <> struct MappingTraits<llvm::DXContainerYAML::RootDescriptorYaml> {
   static void mapping(IO &IO, llvm::DXContainerYAML::RootDescriptorYaml &D);
-};
-
-template <> struct MappingTraits<llvm::DXContainerYAML::DescriptorRangeYaml> {
-  static void mapping(IO &IO, llvm::DXContainerYAML::DescriptorRangeYaml &D);
 };
 
 } // namespace yaml

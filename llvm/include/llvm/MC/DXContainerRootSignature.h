@@ -15,12 +15,6 @@ namespace llvm {
 
 class raw_ostream;
 namespace mcdxbc {
-
-union DescriptorTable {
-  dxbc::DescriptorRangeV10 RangesV10;
-  dxbc::DescriptorRangeV11 RangesV11;
-};
-
 struct RootParameter {
   dxbc::RootParameterType ParameterType;
   dxbc::ShaderVisibility ShaderVisibility;
@@ -29,7 +23,6 @@ struct RootParameter {
     dxbc::RootConstants Constants;
     dxbc::RootDescriptorV10 DescriptorV10;
     dxbc::RootDescriptorV11 DescriptorV11;
-    SmallVector<DescriptorTable> DescriptorTable;
   };
 
   RootParameter(uint32_t Version, dxbc::RootParameterType Type,
@@ -50,10 +43,6 @@ struct RootParameter {
       if (Version == 2)
         DescriptorV11.~RootDescriptorV11();
       break;
-    case llvm::dxbc::RootParameterType::DescriptorTable:
-      DescriptorTable.~SmallVector();
-      break;
-
     default:
       llvm_unreachable("Invalid Root parameter type");
     }
@@ -65,18 +54,15 @@ struct RootParameter {
         ShaderVisibility(Other.ShaderVisibility), Version(Other.Version) {
     switch (ParameterType) {
     case dxbc::RootParameterType::Constants32Bit:
-      Constants = dxbc::RootConstants(Other.Constants);
+      new (&Constants) dxbc::RootConstants(Other.Constants);
       break;
     case dxbc::RootParameterType::CBV:
     case dxbc::RootParameterType::SRV:
     case dxbc::RootParameterType::UAV:
       if (Version == 1)
-        DescriptorV10 = dxbc::RootDescriptorV10(Other.DescriptorV10);
+        new (&DescriptorV10) dxbc::RootDescriptorV10(Other.DescriptorV10);
       else if (Version == 2)
-        DescriptorV11 = dxbc::RootDescriptorV11(Other.DescriptorV11);
-      break;
-    case llvm::dxbc::RootParameterType::DescriptorTable:
-      DescriptorTable = Other.DescriptorTable;
+        new (&DescriptorV11) dxbc::RootDescriptorV11(Other.DescriptorV11);
       break;
     default:
       llvm_unreachable("Invalid Root parameter type");
@@ -97,18 +83,17 @@ struct RootParameter {
         Version(std::move(Other.Version)) {
     switch (ParameterType) {
     case dxbc::RootParameterType::Constants32Bit:
-      Constants = dxbc::RootConstants(std::move(Other.Constants));
+      new (&Constants) dxbc::RootConstants(std::move(Other.Constants));
       break;
     case dxbc::RootParameterType::CBV:
     case dxbc::RootParameterType::SRV:
     case dxbc::RootParameterType::UAV:
       if (Version == 1)
-        DescriptorV10 = dxbc::RootDescriptorV10(std::move(Other.DescriptorV10));
+        new (&DescriptorV10)
+            dxbc::RootDescriptorV10(std::move(Other.DescriptorV10));
       else if (Version == 2)
-        DescriptorV11 = dxbc::RootDescriptorV11(std::move(Other.DescriptorV11));
-      break;
-    case llvm::dxbc::RootParameterType::DescriptorTable:
-      DescriptorTable = std::move(Other.DescriptorTable);
+        new (&DescriptorV11)
+            dxbc::RootDescriptorV11(std::move(Other.DescriptorV11));
       break;
     default:
       llvm_unreachable("Invalid Root parameter type");
