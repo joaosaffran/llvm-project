@@ -32,8 +32,8 @@ static bool reportError(LLVMContext *Ctx, Twine Message,
 static bool parseRootDescriptor(LLVMContext *Ctx,
                                 mcdxbc::RootSignatureDesc &RSD,
                                 MDNode *RootDescNode) {
-  if (RootDescNode->getNumOperands() != 4)
-    return reportError(Ctx, "Invalid format for Root constants element");
+  if (RootDescNode->getNumOperands() != 5)
+    return reportError(Ctx, "Invalid format for Root descriptor element");
 
   StringRef DescType =
       cast<llvm::MDString>(RootDescNode->getOperand(0))->getString();
