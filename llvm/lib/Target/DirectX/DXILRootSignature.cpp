@@ -428,63 +428,59 @@ static bool verifyRangeType(uint32_t Type) {
   return false;
 }
 
+template <typename... FlagTypes>
+static bool isFlagSet(uint32_t Flags, FlagTypes... FlagsToCheck) {
+  return ((Flags & llvm::to_underlying(FlagsToCheck)) | ...) == Flags;
+}
+
 static bool verifyDescriptorRangeFlag(uint32_t Version, uint32_t Type,
                                       uint32_t Flags) {
-  if (Version == 1 &&
-      Type == llvm::to_underlying(dxbc::DescriptorRangeType::Sampler))
-    return Flags == 0;
+  using namespace dxbc;
 
-  if (Version == 2 &&
-      Type == llvm::to_underlying(dxbc::DescriptorRangeType::Sampler)) {
-    switch (Flags) {
-    case 0:
-    case llvm::to_underlying(dxbc::DescriptorRangeFlag::DATA_VOLATILE):
-    case llvm::to_underlying(
-        dxbc::DescriptorRangeFlag::
-            DESCRIPTORS_STATIC_KEEPING_BUFFER_BOUNDS_CHECKS):
-      return true;
+  bool IsSampler = (Type == llvm::to_underlying(DescriptorRangeType::Sampler));
+
+  if (Version == 1) {
+    if (IsSampler) {
+      return Flags == 0;
     }
-    return false;
+    return Flags ==
+           llvm::to_underlying(DescriptorRangeFlag::DESCRIPTORS_VOLATILE);
   }
 
-  if (Version == 1 &&
-      Type != llvm::to_underlying(dxbc::DescriptorRangeType::Sampler))
-    return Flags ==
-           llvm::to_underlying(dxbc::DescriptorRangeFlag::DESCRIPTORS_VOLATILE);
-
-  if (Version == 2 &&
-      Type != llvm::to_underlying(dxbc::DescriptorRangeType::Sampler)) {
-    switch (Flags) {
-    case 0:
-    case llvm::to_underlying(dxbc::DescriptorRangeFlag::DESCRIPTORS_VOLATILE):
-    case llvm::to_underlying(dxbc::DescriptorRangeFlag::DATA_VOLATILE):
-    case llvm::to_underlying(dxbc::DescriptorRangeFlag::DATA_STATIC):
-    case llvm::to_underlying(
-        dxbc::DescriptorRangeFlag::DATA_STATIC_WHILE_SET_AT_EXECUTE):
-    case llvm::to_underlying(
-        dxbc::DescriptorRangeFlag::
-            DESCRIPTORS_STATIC_KEEPING_BUFFER_BOUNDS_CHECKS):
-    case llvm::to_underlying(dxbc::DescriptorRangeFlag::DESCRIPTORS_VOLATILE) |
-        llvm::to_underlying(dxbc::DescriptorRangeFlag::DATA_VOLATILE):
-    case llvm::to_underlying(dxbc::DescriptorRangeFlag::DESCRIPTORS_VOLATILE) |
-        llvm::to_underlying(
-            dxbc::DescriptorRangeFlag::DATA_STATIC_WHILE_SET_AT_EXECUTE):
-    case llvm::to_underlying(
-        dxbc::DescriptorRangeFlag::
-            DESCRIPTORS_STATIC_KEEPING_BUFFER_BOUNDS_CHECKS) |
-        llvm::to_underlying(dxbc::DescriptorRangeFlag::DATA_VOLATILE):
-    case llvm::to_underlying(
-        dxbc::DescriptorRangeFlag::
-            DESCRIPTORS_STATIC_KEEPING_BUFFER_BOUNDS_CHECKS) |
-        llvm::to_underlying(dxbc::DescriptorRangeFlag::DATA_STATIC):
-    case llvm::to_underlying(
-        dxbc::DescriptorRangeFlag::
-            DESCRIPTORS_STATIC_KEEPING_BUFFER_BOUNDS_CHECKS) |
-        llvm::to_underlying(
-            dxbc::DescriptorRangeFlag::DATA_STATIC_WHILE_SET_AT_EXECUTE):
-      return true;
+  if (Version == 2) {
+    if (IsSampler) {
+      return Flags == 0 ||
+             isFlagSet(Flags, DescriptorRangeFlag::DATA_VOLATILE) ||
+             isFlagSet(Flags,
+                       DescriptorRangeFlag::
+                           DESCRIPTORS_STATIC_KEEPING_BUFFER_BOUNDS_CHECKS);
     }
-    return false;
+    // Valid flag combinations for non-sampler Version 2
+    return Flags == 0 ||
+           isFlagSet(Flags, DescriptorRangeFlag::DESCRIPTORS_VOLATILE) ||
+           isFlagSet(Flags, DescriptorRangeFlag::DATA_VOLATILE) ||
+           isFlagSet(Flags, DescriptorRangeFlag::DATA_STATIC) ||
+           isFlagSet(Flags,
+                     DescriptorRangeFlag::DATA_STATIC_WHILE_SET_AT_EXECUTE) ||
+           isFlagSet(Flags,
+                     DescriptorRangeFlag::
+                         DESCRIPTORS_STATIC_KEEPING_BUFFER_BOUNDS_CHECKS) ||
+           isFlagSet(Flags, DescriptorRangeFlag::DESCRIPTORS_VOLATILE,
+                     DescriptorRangeFlag::DATA_VOLATILE) ||
+           isFlagSet(Flags, DescriptorRangeFlag::DESCRIPTORS_VOLATILE,
+                     DescriptorRangeFlag::DATA_STATIC_WHILE_SET_AT_EXECUTE) ||
+           isFlagSet(Flags,
+                     DescriptorRangeFlag::
+                         DESCRIPTORS_STATIC_KEEPING_BUFFER_BOUNDS_CHECKS,
+                     DescriptorRangeFlag::DATA_VOLATILE) ||
+           isFlagSet(Flags,
+                     DescriptorRangeFlag::
+                         DESCRIPTORS_STATIC_KEEPING_BUFFER_BOUNDS_CHECKS,
+                     DescriptorRangeFlag::DATA_STATIC) ||
+           isFlagSet(Flags,
+                     DescriptorRangeFlag::
+                         DESCRIPTORS_STATIC_KEEPING_BUFFER_BOUNDS_CHECKS,
+                     DescriptorRangeFlag::DATA_STATIC_WHILE_SET_AT_EXECUTE);
   }
   return false;
 }
