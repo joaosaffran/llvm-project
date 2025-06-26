@@ -164,7 +164,7 @@ void DXContainerGlobals::addRootSignature(Module &M,
   const Function *EntryFunction = MMI.EntryPropertyVec[0].Entry;
   const auto &RS = RSA.getDescForFunction(EntryFunction);
 
-  if (!RS )
+  if (!RS)
     return;
 
   SmallString<256> Data;
