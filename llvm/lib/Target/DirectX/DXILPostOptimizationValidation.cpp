@@ -12,11 +12,13 @@
 #include "llvm/ADT/SmallString.h"
 #include "llvm/Analysis/DXILMetadataAnalysis.h"
 #include "llvm/Analysis/DXILResource.h"
+#include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/DiagnosticInfo.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/IntrinsicsDirectX.h"
 #include "llvm/IR/Module.h"
 #include "llvm/InitializePasses.h"
+#include "llvm/Support/Casting.h"
 
 #define DEBUG_TYPE "dxil-post-optimization-validation"
 
@@ -82,6 +84,17 @@ static void reportOverlappingBinding(Module &M, DXILResourceMap &DRM) {
       PrevRI = CurrentRI;
     }
   }
+}
+
+static void
+reportInvalidHandleTyBoundInRs(Module &M, Twine Type,
+                               ResourceInfo::ResourceBinding Binding) {
+  SmallString<128> Message;
+  raw_svector_ostream OS(Message);
+  OS << "resource " << Type << " at register (space=" << Binding.Space
+     << ", register=" << Binding.LowerBound << ")"
+     << " is bound to a texture or typed buffer.";
+  M.getContext().diagnose(DiagnosticInfoGeneric(Message));
 }
 
 static void reportRegNotBound(Module &M, Twine Type,
@@ -197,7 +210,7 @@ getRootSignature(RootSignatureBindingInfo &RSBI,
   return RootSigDesc;
 }
 
-static void reportUnboundRegisters(
+static void reportInvalidRegistersBinding(
     Module &M,
     const std::vector<llvm::dxil::ResourceInfo::ResourceBinding> &Bindings,
     iterator_range<SmallVector<dxil::ResourceInfo>::iterator> &Resources) {
@@ -214,6 +227,13 @@ static void reportUnboundRegisters(
     }
     if (!Bound) {
       reportRegNotBound(M, Res->getName(), Res->getBinding());
+    } else {
+      TargetExtType *Handle = Res->getHandleTy();
+      auto *TypedBuffer = dyn_cast_or_null<TypedBufferExtType>(Handle);
+      auto *Texture = dyn_cast_or_null<TextureExtType>(Handle);
+
+      if (TypedBuffer != nullptr || Texture != nullptr)
+        reportInvalidHandleTyBoundInRs(M, Res->getName(), Res->getBinding());
     }
   }
 }
@@ -241,14 +261,14 @@ static void reportErrors(Module &M, DXILResourceMap &DRM,
     auto UAVs = DRM.uavs();
     auto Samplers = DRM.samplers();
 
-    reportUnboundRegisters(
+    reportInvalidRegistersBinding(
         M, Validation.getBindingsOfType(dxbc::DescriptorRangeType::CBV), Cbufs);
-    reportUnboundRegisters(
+    reportInvalidRegistersBinding(
         M, Validation.getBindingsOfType(dxbc::DescriptorRangeType::UAV), UAVs);
-    reportUnboundRegisters(
+    reportInvalidRegistersBinding(
         M, Validation.getBindingsOfType(dxbc::DescriptorRangeType::Sampler),
         Samplers);
-    reportUnboundRegisters(
+    reportInvalidRegistersBinding(
         M, Validation.getBindingsOfType(dxbc::DescriptorRangeType::SRV), SRVs);
   }
 }
