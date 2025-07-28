@@ -12,6 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "llvm/Frontend/HLSL/RootSignatureMetadata.h"
+#include "llvm/BinaryFormat/DXContainer.h"
 #include "llvm/Frontend/HLSL/RootSignatureValidations.h"
 #include "llvm/IR/DiagnosticInfo.h"
 #include "llvm/IR/IRBuilder.h"
@@ -563,7 +564,16 @@ bool MetadataParser::validateRootSignature(
         static_cast<dxbc::RootParameterType>(Info.Header.ParameterType);
 
     switch (PT) {
+    case dxbc::RootParameterType::Constants32Bit: {
+      const dxbc::RTS0::v1::RootConstants &Constant =
+          RSD.ParametersContainer.getConstant(Info.Location);
+      if (!llvm::hlsl::rootsig::verifyRegisterValue(Constant.ShaderRegister))
+        return reportValueError(Ctx, "ShaderRegister", Constant.ShaderRegister);
 
+      if (!llvm::hlsl::rootsig::verifyRegisterSpace(Constant.RegisterSpace))
+        return reportValueError(Ctx, "RegisterSpace", Constant.RegisterSpace);
+      break;
+    };
     case dxbc::RootParameterType::CBV:
     case dxbc::RootParameterType::UAV:
     case dxbc::RootParameterType::SRV: {
