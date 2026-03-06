@@ -576,7 +576,7 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
     setOperationAction({ISD::AVGFLOORS, ISD::AVGFLOORU}, VTs, Legal);
     for (MVT VT : VTs) {
       if (VT != MVT::v2i32)
-        setOperationAction({ISD::ABDS, ISD::ABDU}, VT, Legal);
+        setOperationAction({ISD::ABS, ISD::ABDS, ISD::ABDU}, VT, Legal);
       if (VT.getVectorElementType() != MVT::i8)
         setOperationAction(ISD::SSHLSAT, VT, Legal);
     }
@@ -2720,7 +2720,6 @@ bool RISCVTargetLowering::isExtractSubvectorCheap(EVT ResVT, EVT SrcVT,
   assert(EltVT == SrcVT.getVectorElementType() && "Should hold for node");
 
   // The smallest type we can slide is i8.
-  // TODO: We can extract index 0 from a mask vector without a slide.
   if (EltVT == MVT::i1)
     return false;
 
@@ -8859,14 +8858,32 @@ SDValue RISCVTargetLowering::LowerOperation(SDValue Op,
   case ISD::SRA:
     if (Op.getSimpleValueType().isFixedLengthVector()) {
       if (Subtarget.hasStdExtP()) {
-        // We have patterns for scalar/immediate shift amount, so no lowering
-        // needed.
-        if (Op.getOperand(1)->getOpcode() == ISD::SPLAT_VECTOR)
-          return Op;
+        SDValue ShAmtVec = Op.getOperand(1);
+        SDValue SplatVal;
+        if (ShAmtVec.getOpcode() == ISD::SPLAT_VECTOR)
+          SplatVal = ShAmtVec.getOperand(0);
+        else if (ShAmtVec.getOpcode() == ISD::BUILD_VECTOR)
+          SplatVal = cast<BuildVectorSDNode>(ShAmtVec)->getSplatValue();
 
-        // There's no vector-vector version of shift instruction in P extension
-        // so we need to unroll to scalar computation and pack them back.
-        return DAG.UnrollVectorOp(Op.getNode());
+        if (!SplatVal)
+          return DAG.UnrollVectorOp(Op.getNode());
+
+        unsigned Opc;
+        switch (Op.getOpcode()) {
+        default:
+          llvm_unreachable("Unexpected opcode");
+        case ISD::SHL:
+          Opc = RISCVISD::PSHL;
+          break;
+        case ISD::SRL:
+          Opc = RISCVISD::PSRL;
+          break;
+        case ISD::SRA:
+          Opc = RISCVISD::PSRA;
+          break;
+        }
+        return DAG.getNode(Opc, SDLoc(Op), Op.getValueType(), Op.getOperand(0),
+                           SplatVal);
       }
       return lowerToScalableOp(Op, DAG);
     }
@@ -25221,6 +25238,8 @@ RISCVTargetLowering::getRegForInlineAsmConstraint(const TargetRegisterInfo *TRI,
           return std::make_pair(0U, &RISCV::FPR16RegClass);
         if (Subtarget.hasStdExtZhinxmin())
           return std::make_pair(0U, &RISCV::GPRF16NoX0RegClass);
+      } else if (VT == MVT::bf16 && Subtarget.hasStdExtZfbfmin()) {
+        return std::make_pair(0U, &RISCV::FPR16RegClass);
       } else if (VT == MVT::f32) {
         if (Subtarget.hasStdExtF())
           return std::make_pair(0U, &RISCV::FPR32RegClass);
@@ -25318,6 +25337,8 @@ RISCVTargetLowering::getRegForInlineAsmConstraint(const TargetRegisterInfo *TRI,
         return std::make_pair(0U, &RISCV::FPR16CRegClass);
       if (Subtarget.hasStdExtZhinxmin())
         return std::make_pair(0U, &RISCV::GPRF16CRegClass);
+    } else if (VT == MVT::bf16 && Subtarget.hasStdExtZfbfmin()) {
+      return std::make_pair(0U, &RISCV::FPR16CRegClass);
     } else if (VT == MVT::f32) {
       if (Subtarget.hasStdExtF())
         return std::make_pair(0U, &RISCV::FPR32CRegClass);
