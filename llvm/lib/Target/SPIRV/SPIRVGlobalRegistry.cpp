@@ -910,7 +910,18 @@ SPIRVTypeInst SPIRVGlobalRegistry::getOpTypeArray(uint32_t NumElems,
   SPIRVTypeInst ArrayType = nullptr;
   const SPIRVSubtarget &ST =
       cast<SPIRVSubtarget>(MIRBuilder.getMF().getSubtarget());
-  if (NumElems != 0) {
+
+  // Unbounded arrays (e.g. RWBuffer Buf[]) are represented in LLVM IR
+  // with UINT32_MAX as the element count. Lower these to OpTypeRuntimeArray
+  // instead of OpTypeArray.
+  if (NumElems == std::numeric_limits<uint32_t>::max()) {
+    ArrayType = createConstOrTypeAtFunctionEntry(
+        MIRBuilder, [&](MachineIRBuilder &MIRBuilder) {
+          return MIRBuilder.buildInstr(SPIRV::OpTypeRuntimeArray)
+              .addDef(createTypeVReg(MIRBuilder))
+              .addUse(getSPIRVTypeID(ElemType));
+        });
+  } else if (NumElems != 0) {
     Register NumElementsVReg =
         buildConstantInt(NumElems, MIRBuilder, SpvTypeInt32, EmitIR);
     ArrayType = createConstOrTypeAtFunctionEntry(
