@@ -915,6 +915,8 @@ SPIRVTypeInst SPIRVGlobalRegistry::getOpTypeArray(uint32_t NumElems,
   // with UINT32_MAX as the element count. Lower these to OpTypeRuntimeArray
   // instead of OpTypeArray.
   if (NumElems == std::numeric_limits<uint32_t>::max()) {
+    MIRBuilder.buildInstr(SPIRV::OpCapability)
+        .addImm(SPIRV::Capability::RuntimeDescriptorArrayEXT);
     ArrayType = createConstOrTypeAtFunctionEntry(
         MIRBuilder, [&](MachineIRBuilder &MIRBuilder) {
           return MIRBuilder.buildInstr(SPIRV::OpTypeRuntimeArray)
