@@ -117,11 +117,13 @@ static const ValueDecl *getArrayDecl(const ArraySubscriptExpr *ASE) {
 }
 
 // Get the total size of the array, or -1 if the array is unbounded.
-static int getTotalArraySize(ASTContext &AST, const clang::Type *Ty) {
+static int getTotalArraySize(ASTContext &AST, llvm::Triple::ArchType Arch,
+                             const clang::Type *Ty) {
   Ty = Ty->getUnqualifiedDesugaredType();
   assert(Ty->isArrayType() && "expected array type");
   if (Ty->isIncompleteArrayType())
-    return -1;
+    // Spirv uses 0 to represent unbounded arrays.
+    return Arch == llvm::Triple::ArchType::dxil ? -1 : 0;
   return AST.getConstantArrayElementCount(cast<ConstantArrayType>(Ty));
 }
 
@@ -1280,7 +1282,7 @@ std::optional<LValue> CGHLSLRuntime::emitResourceArraySubscriptExpr(
 
   // Calculate total array size (= range size).
   llvm::Value *Range = llvm::ConstantInt::getSigned(
-      CGM.IntTy, getTotalArraySize(AST, ResArrayTy));
+      CGM.IntTy, getTotalArraySize(AST, getArch(), ResArrayTy));
 
   // If the result of the subscript operation is a single resource, call the
   // constructor.
@@ -1345,7 +1347,7 @@ bool CGHLSLRuntime::emitResourceArrayCopy(LValue &LHS, Expr *RHSExpr,
       AggValueSlot::DoesNotOverlap);
 
   // Create Value for index and total array size (= range size).
-  int Size = getTotalArraySize(AST, ResArrayTy);
+  int Size = getTotalArraySize(AST, getArch(), ResArrayTy);
   llvm::Value *Zero = llvm::ConstantInt::get(CGM.IntTy, 0);
   llvm::Value *Range = llvm::ConstantInt::get(CGM.IntTy, Size);
 
