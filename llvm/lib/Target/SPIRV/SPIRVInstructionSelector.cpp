@@ -3089,45 +3089,46 @@ bool SPIRVInstructionSelector::selectBitreverse16(Register ResVReg,
                                                   MachineInstr &I,
                                                   Register Op) const {
   SPIRVTypeInst Int32Type = GR.getOrCreateSPIRVIntegerType(32, I, TII);
-  Register ScalarShiftAmount = GR.getOrCreateConstInt(16, I, Int32Type, TII);
+  Register ShiftConst = GR.getOrCreateConstInt(16, I, Int32Type, TII);
+  unsigned ShiftOp = SPIRV::OpShiftRightLogicalS;
 
-  unsigned N = GR.getScalarOrVectorComponentCount(ResType);
-  if (N > 1)
+  const unsigned N = GR.getScalarOrVectorComponentCount(ResType);
+  const unsigned ExtendOpcode = GR.isScalarOrVectorSigned(ResType)
+                                    ? SPIRV::OpSConvert
+                                    : SPIRV::OpUConvert;
+
+  if (N > 1) {
     Int32Type = GR.getOrCreateSPIRVVectorType(Int32Type, N, I, TII);
+    ShiftOp = SPIRV::OpShiftRightLogicalV;
 
-  Register ExtReg = MRI->createVirtualRegister(GR.getRegClass(Int32Type));
-  unsigned ExtendOpcode = GR.isScalarOrVectorSigned(ResType)
-                              ? SPIRV::OpSConvert
-                              : SPIRV::OpUConvert;
+    // Vector shifts require a composite constant
+    const Register CompositeReg =
+        MRI->createVirtualRegister(GR.getRegClass(Int32Type));
+    auto MIB = BuildMI(*I.getParent(), I, I.getDebugLoc(),
+                       TII.get(SPIRV::OpConstantComposite))
+                   .addDef(CompositeReg)
+                   .addUse(GR.getSPIRVTypeID(Int32Type));
+    for (unsigned It = 0; It < N; ++It)
+      MIB.addUse(ShiftConst);
+    MIB.constrainAllUses(TII, TRI, RBI);
+
+    ShiftConst = CompositeReg;
+  }
+
   // Converts the i16 input to i32 (or vector of i32)
+  Register ExtReg = MRI->createVirtualRegister(GR.getRegClass(Int32Type));
   if (!selectOpWithSrcs(ExtReg, Int32Type, I, {Op}, ExtendOpcode))
     return false;
 
-  Register BitrevReg = MRI->createVirtualRegister(GR.getRegClass(Int32Type));
   // Perform bitreverse on the i32 value
+  Register BitrevReg = MRI->createVirtualRegister(GR.getRegClass(Int32Type));
   if (!selectBitreverse32(BitrevReg, Int32Type, I, ExtReg))
     return false;
 
-  Register ShiftConst;
-  if (N > 1) {
-    ShiftConst = MRI->createVirtualRegister(GR.getRegClass(Int32Type));
-    auto MIB = BuildMI(*I.getParent(), I, I.getDebugLoc(),
-                       TII.get(SPIRV::OpConstantComposite))
-                   .addDef(ShiftConst)
-                   .addUse(GR.getSPIRVTypeID(Int32Type));
-    for (unsigned It = 0; It < N; ++It)
-      MIB.addUse(ScalarShiftAmount);
-    MIB.constrainAllUses(TII, TRI, RBI);
-  } else {
-    ShiftConst = ScalarShiftAmount;
-  }
-
-  Register ShiftReg = MRI->createVirtualRegister(GR.getRegClass(Int32Type));
-
   // Shift the bit-reversed value to get the final result.
+  Register ShiftReg = MRI->createVirtualRegister(GR.getRegClass(Int32Type));
   if (!selectOpWithSrcs(ShiftReg, Int32Type, I, {BitrevReg, ShiftConst},
-                        N > 1 ? SPIRV::OpShiftRightLogicalV
-                              : SPIRV::OpShiftRightLogicalS))
+                        ShiftOp))
     return false;
 
   // Finally, convert the result back to i16 (or vector of i16).
