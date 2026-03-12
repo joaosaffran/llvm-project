@@ -1,6 +1,7 @@
 ; RUN: llc -O0 -verify-machineinstrs -mtriple=spirv1.6-vulkan1.3-library %s -o - | FileCheck %s
 ; RUN: %if spirv-tools %{ llc -O0 -mtriple=spirv1.6-vulkan1.3-library %s -o - -filetype=obj | spirv-val %}
 
+; CHECK-DAG: OpCapability RuntimeDescriptorArrayEXT
 ; CHECK-DAG: %[[int32:[0-9]+]] = OpTypeInt 32 0
 ; CHECK-DAG: %[[rwbuffer:[0-9]+]] = OpTypeImage %[[int32]] Buffer 2 0 0 2 R32i
 ; CHECK-DAG: OpTypeRuntimeArray %[[rwbuffer]]
