@@ -392,7 +392,7 @@ public:
     bool overlapsWith(const ResourceBinding &RHS) const {
       if (Space != RHS.Space)
         return false;
-      if (Size == UINT32_MAX)
+      if (Size == 0)
         return LowerBound < RHS.LowerBound;
       return LowerBound + Size - 1 >= RHS.LowerBound;
     }
