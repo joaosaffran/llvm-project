@@ -68,7 +68,7 @@ define void @test_bindings() {
       @llvm.dx.resource.handlefrombinding.tdx.TypedBuffer_v4f32_0_0_0t(
           i32 0, i32 7, i32 0, i32 %typed3_ix, ptr null)
   ; CHECK: %[[IX:.*]] = add i32 %typed3_ix, 7
-  ; CHECK: [[BUF5:%.*]] = call %dx.types.Handle @dx.op.createHandleFromBinding(i32 217, %dx.types.ResBind { i32 7, i32 -1, i32 0, i8 0 }, i32 %[[IX]], i1 false) #[[#ATTR]]
+  ; CHECK: [[BUF5:%.*]] = call %dx.types.Handle @dx.op.createHandleFromBinding(i32 217, %dx.types.ResBind { i32 7, i32 0, i32 0, i8 0 }, i32 %[[IX]], i1 false) #[[#ATTR]]
   ; CHECK: call %dx.types.Handle @dx.op.annotateHandle(i32 216, %dx.types.Handle [[BUF5]], %dx.types.ResourceProperties { i32 10, i32 1033 }) #[[#ATTR]]
 
   ; cbuffer cb0 : register(b0) { int4 i; float4 f; }

@@ -384,8 +384,10 @@ public:
       return !(*this == RHS);
     }
     bool operator<(const ResourceBinding &RHS) const {
-      return std::tie(RecordID, Space, LowerBound, Size) <
-             std::tie(RHS.RecordID, RHS.Space, RHS.LowerBound, RHS.Size);
+      const uint32_t ThisSizeFixed = Size == 0 ? UINT32_MAX : Size;
+      const uint32_t RHSSizeFixed = Size == 0 ? UINT32_MAX : Size;
+      return std::tie(RecordID, Space, LowerBound, ThisSizeFixed) <
+             std::tie(RHS.RecordID, RHS.Space, RHS.LowerBound, RHSSizeFixed);
     }
     bool overlapsWith(const ResourceBinding &RHS) const {
       if (Space != RHS.Space)
