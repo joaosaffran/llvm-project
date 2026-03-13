@@ -891,7 +891,7 @@ void DXILResourceMap::populateResourceInfos(Module &M,
 
           ResourceInfo RI = ResourceInfo{
               /*RecordID=*/0,         Space,    LowerBound,
-              Size == 0 , HandleTy, Name};
+              Size, HandleTy, Name};
 
           CIToInfos.emplace_back(CI, RI, RTI);
         }
