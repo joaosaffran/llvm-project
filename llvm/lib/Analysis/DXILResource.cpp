@@ -889,9 +889,9 @@ void DXILResourceMap::populateResourceInfos(Module &M,
               cast<ConstantInt>(CI->getArgOperand(2))->getZExtValue();
           StringRef Name = getResourceNameFromBindingCall(CI);
 
-          ResourceInfo RI = ResourceInfo{
-              /*RecordID=*/0,         Space,    LowerBound,
-              Size, HandleTy, Name};
+          ResourceInfo RI =
+              ResourceInfo{/*RecordID=*/0, Space,    LowerBound,
+                           Size,           HandleTy, Name};
 
           CIToInfos.emplace_back(CI, RI, RTI);
         }
@@ -1073,12 +1073,10 @@ void DXILResourceBindingInfo::populate(Module &M, DXILResourceTypeMap &DRTM) {
 
           // 0 size means unbounded resource array;
           // upper bound register overflow should be detected in Sema
-          assert((Size == 0 ||
-                  (uint64_t)LowerBound + (uint64_t)Size - 1ULL <=
-                      (uint64_t)UINT32_MAX) &&
+          assert((Size == 0 || (uint64_t)LowerBound + (uint64_t)Size - 1ULL <=
+                                   (uint64_t)UINT32_MAX) &&
                  "upper bound register overflow");
-          uint32_t UpperBound =
-              Size == 0 ? UINT32_MAX : LowerBound + Size - 1;
+          uint32_t UpperBound = Size == 0 ? UINT32_MAX : LowerBound + Size - 1;
           Builder.trackBinding(RTI.getResourceClass(), Space, LowerBound,
                                UpperBound, Name);
         }
