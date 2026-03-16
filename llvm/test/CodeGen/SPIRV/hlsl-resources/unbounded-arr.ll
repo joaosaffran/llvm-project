@@ -15,20 +15,15 @@
 ;     Buf[0][0] = 0;
 ; }
 
-
-
 @Buf.str = private unnamed_addr constant [4 x i8] c"Buf\00", align 1
 
 ; Function Attrs: convergent noinline norecurse
 define void @main() #0 {
 entry:
-  %2 = call target("spirv.SignedImage", i32, 5, 2, 0, 0, 2, 24) @llvm.spv.resource.handlefrombinding.tspirv.SignedImage_i32_5_2_0_0_2_24t(i32 0, i32 0, i32 0, i32 0, ptr @Buf.str)
-  %3 = call noundef align 4 dereferenceable(4) ptr addrspace(11) @llvm.spv.resource.getpointer.p11.tspirv.SignedImage_i32_5_2_0_0_2_24t(target("spirv.SignedImage", i32, 5, 2, 0, 0, 2, 24)  %2, i32 0)
-  store i32 0, ptr addrspace(11) %3, align 4
+  %binding = call target("spirv.SignedImage", i32, 5, 2, 0, 0, 2, 24) @llvm.spv.resource.handlefrombinding(i32 0, i32 0, i32 0, i32 0, ptr @Buf.str)
+  %pointer = call noundef align 4 dereferenceable(4) ptr addrspace(11) @llvm.spv.resource.getpointer(target("spirv.SignedImage", i32, 5, 2, 0, 0, 2, 24)  %binding, i32 0)
+  store i32 0, ptr addrspace(11) %pointer, align 4
   ret void
 }
-; Function Attrs: nocallback nofree nosync nounwind willreturn memory(none)
-declare target("spirv.SignedImage", i32, 5, 2, 0, 0, 2, 24) @llvm.spv.resource.handlefrombinding.tspirv.SignedImage_i32_5_2_0_0_2_24t(i32, i32, i32, i32, ptr) #3
 
-attributes #0 = { convergent noinline norecurse "hlsl.numthreads"="4,2,1" "hlsl.shader"="compute" "no-nans-fp-math"="true" "no-signed-zeros-fp-math"="true" "no-trapping-math"="true" "stack-protector-buffer-size"="8" }
-attributes #3 = { nocallback nofree nosync nounwind willreturn memory(none) }
+attributes #0 = { convergent noinline norecurse "hlsl.numthreads"="4,2,1" "hlsl.shader"="compute" }

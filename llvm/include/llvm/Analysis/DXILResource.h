@@ -384,7 +384,7 @@ public:
       return !(*this == RHS);
     }
     bool operator<(const ResourceBinding &RHS) const {
-      // a size of 0 indicates unbounded. Adjusting the size to UINT32_MAX
+      // a size of 0 indicates unbounded. Accounting for when the size is 0
       // guarantees a well ordered results.
       const bool LHSIsUnbounded = Size == 0;
       const bool RHSIsUnbounded = RHS.Size == 0;
