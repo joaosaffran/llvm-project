@@ -692,7 +692,7 @@ MDTuple *ResourceInfo::getAsMetadata(Module &M,
   MDVals.push_back(MDString::get(Ctx, Name));
   MDVals.push_back(getIntMD(Binding.Space));
   MDVals.push_back(getIntMD(Binding.LowerBound));
-  MDVals.push_back(getIntMD(Binding.Size));
+  MDVals.push_back(getIntMD(Binding.Size == 0 ? ~0u : Binding.Size));
 
   if (RTI.isCBuffer()) {
     MDVals.push_back(getIntMD(RTI.getCBufferSize(DL)));

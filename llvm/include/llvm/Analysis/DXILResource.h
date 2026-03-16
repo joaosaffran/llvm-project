@@ -384,10 +384,13 @@ public:
       return !(*this == RHS);
     }
     bool operator<(const ResourceBinding &RHS) const {
-      const uint32_t ThisSizeFixed = Size == 0 ? UINT32_MAX : Size;
-      const uint32_t RHSSizeFixed = Size == 0 ? UINT32_MAX : Size;
-      return std::tie(RecordID, Space, LowerBound, ThisSizeFixed) <
-             std::tie(RHS.RecordID, RHS.Space, RHS.LowerBound, RHSSizeFixed);
+      // a size of 0 indicates unbounded. Adjusting the size to UINT32_MAX
+      // guarantees a well ordered results.
+      const bool LHSIsUnbounded = Size == 0;
+      const bool RHSIsUnbounded = RHS.Size == 0;
+      return std::tie(RecordID, Space, LowerBound, LHSIsUnbounded, Size) <
+             std::tie(RHS.RecordID, RHS.Space, RHS.LowerBound, RHSIsUnbounded,
+                      RHS.Size);
     }
     bool overlapsWith(const ResourceBinding &RHS) const {
       if (Space != RHS.Space)
