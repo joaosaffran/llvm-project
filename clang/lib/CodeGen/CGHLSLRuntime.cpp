@@ -116,7 +116,7 @@ static const ValueDecl *getArrayDecl(const ArraySubscriptExpr *ASE) {
   return getArrayDecl(E);
 }
 
-// Get the total size of the array, or -1 if the array is unbounded.
+// Get the total size of the array, or 0 if the array is unbounded.
 static int getTotalArraySize(ASTContext &AST, const clang::Type *Ty) {
   Ty = Ty->getUnqualifiedDesugaredType();
   assert(Ty->isArrayType() && "expected array type");
