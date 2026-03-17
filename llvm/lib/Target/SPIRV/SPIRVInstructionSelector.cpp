@@ -5376,10 +5376,10 @@ bool SPIRVInstructionSelector::selectFirstBitSet64(
   bool IsScalarRes = ResType->getOpcode() != SPIRV::OpTypeVector;
   if (IsScalarRes) {
     // if scalar do a vector extract
-    if (!selectOpWithSrcs(HighReg, ResType, I, {FBSReg, ConstIntZero},
+    if (!selectOpWithSrcs(HighReg, ResType, I, {FBSReg, ConstIntOne},
                           SPIRV::OpVectorExtractDynamic))
       return false;
-    if (!selectOpWithSrcs(LowReg, ResType, I, {FBSReg, ConstIntOne},
+    if (!selectOpWithSrcs(LowReg, ResType, I, {FBSReg, ConstIntZero},
                           SPIRV::OpVectorExtractDynamic))
       return false;
   } else {
@@ -5393,7 +5393,7 @@ bool SPIRVInstructionSelector::selectFirstBitSet64(
                    .addUse(FBSReg);
 
     // high bits are stored in even indexes. Extract them from FBSReg
-    for (unsigned J = 0; J < ComponentCount * 2; J += 2) {
+    for (unsigned J = 1; J < ComponentCount * 2; J += 2) {
       MIB.addImm(J);
     }
 
@@ -5408,7 +5408,7 @@ bool SPIRVInstructionSelector::selectFirstBitSet64(
               .addUse(FBSReg);
 
     // low bits are stored in odd indexes. Extract them from FBSReg
-    for (unsigned J = 1; J < ComponentCount * 2; J += 2) {
+    for (unsigned J = 0; J < ComponentCount * 2; J += 2) {
       MIB.addImm(J);
     }
     MIB.constrainAllUses(TII, TRI, RBI);
@@ -5473,7 +5473,20 @@ bool SPIRVInstructionSelector::selectFirstBitSet64(
                         {BReg, SecondaryShiftReg, PrimaryShiftReg}, SelectOp))
     return false;
 
-  return selectOpWithSrcs(ResVReg, ResType, I, {ValReg, TmpReg}, AddOp);
+  // Compute the candidate result: shift + bit position
+  Register SumReg = MRI->createVirtualRegister(GR.getRegClass(ResType));
+  if (!selectOpWithSrcs(SumReg, ResType, I, {ValReg, TmpReg}, AddOp))
+    return false;
+
+  // If TmpReg == -1, both halves had no set bit — return the not-found
+  // sentinel (-1) instead.
+  Register IsNotFoundReg = MRI->createVirtualRegister(GR.getRegClass(BoolType));
+  if (!selectOpWithSrcs(IsNotFoundReg, BoolType, I, {TmpReg, NegOneReg},
+                        SPIRV::OpIEqual))
+    return false;
+
+  return selectOpWithSrcs(ResVReg, ResType, I,
+                          {IsNotFoundReg, NegOneReg, SumReg}, SelectOp);
 }
 
 bool SPIRVInstructionSelector::selectFirstBitHigh(Register ResVReg,
