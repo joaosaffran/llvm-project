@@ -269,9 +269,9 @@ ModuleShaderFlags::gatherGlobalModuleFlags(const Module &M,
   // Set the Max64UAVs flag if the number of UAVs is > 8
   uint32_t NumUAVs = 0;
   for (auto &UAV : DRM.uavs())
-    if (MMDI.ValidatorVersion < VersionTuple(1, 6))
+    if (MMDI.ValidatorVersion < VersionTuple(1, 6)) {
       NumUAVs++;
-    else{ // MMDI.ValidatorVersion >= VersionTuple(1, 6)
+    } else { // MMDI.ValidatorVersion >= VersionTuple(1, 6)
       const uint32_t Size = UAV.getBinding().Size;
       NumUAVs += Size == 0 ? ~0u : Size;
     }
