@@ -5443,50 +5443,61 @@ bool SPIRVInstructionSelector::selectFirstBitSet64(
 
   Register PrimaryReg = HighReg;
   Register SecondaryReg = LowReg;
-  Register PrimaryShiftReg = Reg32;
-  Register SecondaryShiftReg = Reg0;
+  Register RegPrimaryOffset = Reg32;
+  Register RegSecondaryOffset = Reg0;
 
   // By default the emitted opcodes check for the set bit from the MSB side.
   // Setting SwapPrimarySide checks the set bit from the LSB side
   if (SwapPrimarySide) {
     PrimaryReg = LowReg;
     SecondaryReg = HighReg;
-    PrimaryShiftReg = Reg0;
-    SecondaryShiftReg = Reg32;
+    RegPrimaryOffset = Reg0;
+    RegSecondaryOffset = Reg32;
   }
 
-  // Check if the primary bits are == -1
-  Register BReg = MRI->createVirtualRegister(GR.getRegClass(BoolType));
-  if (!selectOpWithSrcs(BReg, BoolType, I, {PrimaryReg, NegOneReg},
-                        SPIRV::OpIEqual))
+  Register RegSecondaryHasVal =
+      MRI->createVirtualRegister(GR.getRegClass(BoolType));
+  if (!selectOpWithSrcs(RegSecondaryHasVal, BoolType, I,
+                        {SecondaryReg, NegOneReg}, SPIRV::OpINotEqual))
     return false;
 
-  // Select secondary bits if true in BReg, otherwise primary bits
-  Register TmpReg = MRI->createVirtualRegister(GR.getRegClass(ResType));
-  if (!selectOpWithSrcs(TmpReg, ResType, I, {BReg, SecondaryReg, PrimaryReg},
+  Register RegPrimaryHasVal =
+      MRI->createVirtualRegister(GR.getRegClass(BoolType));
+  if (!selectOpWithSrcs(RegPrimaryHasVal, BoolType, I, {PrimaryReg, NegOneReg},
+                        SPIRV::OpINotEqual))
+    return false;
+
+  // Pass 1: seed with secondary (lower-priority fallback)
+  //   ReturnBits = secondaryHasVal ? SecondaryBits : -1
+  //   Add        = secondaryHasVal ? SecondaryOffset : 0
+  Register RegReturnBits = MRI->createVirtualRegister(GR.getRegClass(ResType));
+  if (!selectOpWithSrcs(RegReturnBits, ResType, I,
+                        {RegSecondaryHasVal, SecondaryReg, NegOneReg},
                         SelectOp))
     return false;
 
-  // 5. Add 32 when high bits are used, otherwise 0 for low bits
-  Register ValReg = MRI->createVirtualRegister(GR.getRegClass(ResType));
-  if (!selectOpWithSrcs(ValReg, ResType, I,
-                        {BReg, SecondaryShiftReg, PrimaryShiftReg}, SelectOp))
+  Register RegAdd = MRI->createVirtualRegister(GR.getRegClass(ResType));
+  if (!selectOpWithSrcs(RegAdd, ResType, I,
+                        {RegSecondaryHasVal, RegSecondaryOffset, Reg0},
+                        SelectOp))
     return false;
 
-  // Compute the candidate result: shift + bit position
-  Register SumReg = MRI->createVirtualRegister(GR.getRegClass(ResType));
-  if (!selectOpWithSrcs(SumReg, ResType, I, {ValReg, TmpReg}, AddOp))
+  // Pass 2: override with primary (higher priority) if it has a valid result
+  //   ReturnBits2 = primaryHasVal ? PrimaryBits : ReturnBits
+  //   Add2        = primaryHasVal ? PrimaryOffset : Add
+  Register RegReturnBits2 = MRI->createVirtualRegister(GR.getRegClass(ResType));
+  if (!selectOpWithSrcs(RegReturnBits2, ResType, I,
+                        {RegPrimaryHasVal, PrimaryReg, RegReturnBits},
+                        SelectOp))
     return false;
 
-  // If TmpReg == -1, both halves had no set bit — return the not-found
-  // sentinel (-1) instead.
-  Register IsNotFoundReg = MRI->createVirtualRegister(GR.getRegClass(BoolType));
-  if (!selectOpWithSrcs(IsNotFoundReg, BoolType, I, {TmpReg, NegOneReg},
-                        SPIRV::OpIEqual))
+  Register RegAdd2 = MRI->createVirtualRegister(GR.getRegClass(ResType));
+  if (!selectOpWithSrcs(RegAdd2, ResType, I,
+                        {RegPrimaryHasVal, RegPrimaryOffset, RegAdd}, SelectOp))
     return false;
 
-  return selectOpWithSrcs(ResVReg, ResType, I,
-                          {IsNotFoundReg, NegOneReg, SumReg}, SelectOp);
+  return selectOpWithSrcs(ResVReg, ResType, I, {RegReturnBits2, RegAdd2},
+                          AddOp);
 }
 
 bool SPIRVInstructionSelector::selectFirstBitHigh(Register ResVReg,
