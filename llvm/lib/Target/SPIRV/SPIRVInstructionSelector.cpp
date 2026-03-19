@@ -5476,11 +5476,16 @@ bool SPIRVInstructionSelector::selectFirstBitSet64(
                         SelectOp))
     return false;
 
-  Register RegAdd = MRI->createVirtualRegister(GR.getRegClass(ResType));
-  if (!selectOpWithSrcs(RegAdd, ResType, I,
-                        {RegSecondaryHasVal, RegSecondaryOffset, Reg0},
-                        SelectOp))
-    return false;
+  Register RegAdd;
+  if (SwapPrimarySide) {
+    RegAdd = MRI->createVirtualRegister(GR.getRegClass(ResType));
+    if (!selectOpWithSrcs(RegAdd, ResType, I,
+                          {RegSecondaryHasVal, RegSecondaryOffset, Reg0},
+                          SelectOp))
+      return false;
+  } else {
+    RegAdd = Reg0;
+  }
 
   // Pass 2: override with primary (higher priority) if it has a valid result
   //   ReturnBits2 = primaryHasVal ? PrimaryBits : ReturnBits
