@@ -5392,7 +5392,7 @@ bool SPIRVInstructionSelector::selectFirstBitSet64(
                    // Per the spec, repeat the vector if only one vec is needed
                    .addUse(FBSReg);
 
-    // high bits are stored in even indexes. Extract them from FBSReg
+    // high bits are stored in even natural indexes. Extract them from FBSReg
     for (unsigned J = 1; J < ComponentCount * 2; J += 2) {
       MIB.addImm(J);
     }
