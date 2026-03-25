@@ -5407,7 +5407,7 @@ bool SPIRVInstructionSelector::selectFirstBitSet64(
               // Per the spec, repeat the vector if only one vec is needed
               .addUse(FBSReg);
 
-    // low bits are stored in odd indexes. Extract them from FBSReg
+    // low bits are stored in odd natural indices. Extract them from FBSReg
     for (unsigned J = 0; J < ComponentCount * 2; J += 2) {
       MIB.addImm(J);
     }
