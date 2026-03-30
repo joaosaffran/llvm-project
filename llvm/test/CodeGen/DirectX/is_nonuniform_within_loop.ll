@@ -1,11 +1,10 @@
 ; RUN: opt -S  -dxil-intrinsic-expansion -dxil-op-lower  -mtriple=dxil-pc-shadermodel6.3-library %s
 
-; The goal of this test it to make sure compilation successfully,
+; The goal of this test it to make sure compilation finishes successfully,
 ; in bad case it should timeout.
 
 @Out.str = private unnamed_addr constant [4 x i8] c"Out\00", align 1
 
-; Function Attrs: nofree noinline norecurse nosync nounwind memory(inaccessiblemem: readwrite)
 define void @main() local_unnamed_addr {
 entry:
   %cmp.i4.not = icmp eq i32 4, 0
