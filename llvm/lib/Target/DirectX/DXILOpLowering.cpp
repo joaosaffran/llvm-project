@@ -252,10 +252,15 @@ public:
       return false;
 
     SmallVector<Value *> WorkList;
+    SmallPtrSet<Value *, 8> Visited;
+
     WorkList.push_back(IndexOp);
 
     while (!WorkList.empty()) {
       Value *V = WorkList.pop_back_val();
+      if (!Visited.insert(V).second)
+        continue;
+
       if (auto *CI = dyn_cast<CallInst>(V)) {
         if (CI->getCalledFunction()->getIntrinsicID() ==
             Intrinsic::dx_resource_nonuniformindex)
