@@ -266,6 +266,16 @@ public:
             Intrinsic::dx_resource_nonuniformindex)
           return true;
       }
+
+      for (Use &U : V->uses()) {
+        if (auto *CI = dyn_cast<CallInst>(U.getUser())) {
+          if (CI->getCalledFunction() &&
+              CI->getCalledFunction()->getIntrinsicID() ==
+                  Intrinsic::dx_resource_nonuniformindex)
+            return true;
+        }
+      }
+
       if (auto *U = llvm::dyn_cast<llvm::User>(V)) {
         for (llvm::Value *Op : U->operands()) {
           if (isa<llvm::Constant>(Op))
