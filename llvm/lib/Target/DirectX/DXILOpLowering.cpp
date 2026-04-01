@@ -256,8 +256,8 @@ public:
       return false;
 
     // Base case: is this value itself a call to our intrinsic?
-    if (auto *II = dyn_cast<IntrinsicInst>(Val))
-      if (II->getIntrinsicID() == Intrinsic::dx_resource_nonuniformindex)
+    if (auto *CI = dyn_cast<CallInst>(Val))
+      if (CI->getIntrinsicID() == Intrinsic::dx_resource_nonuniformindex)
         return true;
 
     // If it's a PHI node, check ALL incoming values —
