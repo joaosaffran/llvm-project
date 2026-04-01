@@ -39,6 +39,7 @@ using namespace llvm::dxil;
 namespace {
 class OpLowerer {
   Module &M;
+
   DXILOpBuilder OpBuilder;
   DXILResourceMap &DRM;
   DXILResourceTypeMap &DRTM;
@@ -247,44 +248,44 @@ public:
       NameGlobal->removeFromParent();
   }
 
-  bool hasNonUniformIndex(Value *IndexOp) {
-    if (isa<llvm::Constant>(IndexOp))
+  bool hasNonUniformIndex(Value *Val, SmallPtrSet<Value *, 16> &Visited) {
+    if (isa<llvm::Constant>(Val))
       return false;
 
-    SmallVector<Value *> WorkList;
-    SmallPtrSet<Value *, 8> Visited;
+    // Avoid cycles (important for PHI nodes in loops)
+    if (!Visited.insert(Val).second)
+      return false;
 
-    WorkList.push_back(IndexOp);
+    // Base case: is this value itself a call to our intrinsic?
+    if (auto *II = dyn_cast<IntrinsicInst>(Val))
+      if (II->getIntrinsicID() == Intrinsic::dx_resource_nonuniformindex)
+        return true;
 
-    while (!WorkList.empty()) {
-      Value *V = WorkList.pop_back_val();
-      if (!Visited.insert(V).second)
-        continue;
-
-      if (auto *CI = dyn_cast<CallInst>(V)) {
-        if (CI->getCalledFunction()->getIntrinsicID() ==
-            Intrinsic::dx_resource_nonuniformindex)
+    // If it's a PHI node, check ALL incoming values —
+    // taint from ANY predecessor counts
+    if (auto *Phi = dyn_cast<PHINode>(Val)) {
+      for (Value *Incoming : Phi->incoming_values())
+        if (hasNonUniformIndex(Incoming, Visited))
           return true;
-      }
+      return false;
+    }
 
-      for (Use &U : V->uses()) {
-        if (auto *CI = dyn_cast<CallInst>(U.getUser())) {
-          if (CI->getCalledFunction() &&
-              CI->getCalledFunction()->getIntrinsicID() ==
-                  Intrinsic::dx_resource_nonuniformindex)
+    if (auto *Inst = dyn_cast<Instruction>(Val)) {
+      if (Inst->getNumOperands() > 0 && !Inst->isTerminator()) {
+        for (Value *Op : Inst->operands())
+          if (hasNonUniformIndex(Op, Visited))
             return true;
-        }
-      }
-
-      if (auto *U = llvm::dyn_cast<llvm::User>(V)) {
-        for (llvm::Value *Op : U->operands()) {
-          if (isa<llvm::Constant>(Op))
-            continue;
-          WorkList.push_back(Op);
-        }
       }
     }
+
     return false;
+  }
+
+  bool hasNonUniformIndex(Value *IndexOp) {
+    SmallVector<Value *> WorkList;
+    SmallPtrSet<Value *, 16> Visited;
+
+    return hasNonUniformIndex(IndexOp, Visited);
   }
 
   Error validateRawBufferElementIndex(Value *Resource, Value *ElementIndex) {
@@ -325,7 +326,6 @@ public:
       if (Binding.LowerBound != 0)
         IndexOp = IRB.CreateAdd(IndexOp,
                                 ConstantInt::get(Int32Ty, Binding.LowerBound));
-
       bool HasNonUniformIndex =
           (Binding.Size == 1) ? false : hasNonUniformIndex(IndexOp);
       std::array<Value *, 4> Args{

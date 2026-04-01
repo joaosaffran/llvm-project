@@ -10,7 +10,7 @@ entry:
   br label %while.body.i
 
 while.body.i:
-  %phi = phi i32 [ 0, %entry ], [ %inc, %while.body.i ]
+  %phi = phi i32 [ 0, %entry ], [ %nuri, %while.body.i ]
   %binding = tail call target("dx.RawBuffer", i32, 1, 0) @llvm.dx.resource.handlefrombinding(i32 0, i32 0, i32 4, i32 %phi, ptr nonnull @Out.str)
   %update.counter = tail call noundef i32 @llvm.dx.resource.updatecounter(target("dx.RawBuffer", i32, 1, 0) %binding, i8 1)
   %inc = add nuw nsw i32 %phi, 1
