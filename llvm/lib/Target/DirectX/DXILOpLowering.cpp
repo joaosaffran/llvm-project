@@ -39,7 +39,6 @@ using namespace llvm::dxil;
 namespace {
 class OpLowerer {
   Module &M;
-
   DXILOpBuilder OpBuilder;
   DXILResourceMap &DRM;
   DXILResourceTypeMap &DRTM;
@@ -277,7 +276,6 @@ public:
             return true;
       }
     }
-
     return false;
   }
 
@@ -326,6 +324,7 @@ public:
       if (Binding.LowerBound != 0)
         IndexOp = IRB.CreateAdd(IndexOp,
                                 ConstantInt::get(Int32Ty, Binding.LowerBound));
+
       bool HasNonUniformIndex =
           (Binding.Size == 1) ? false : hasNonUniformIndex(IndexOp);
       std::array<Value *, 4> Args{
